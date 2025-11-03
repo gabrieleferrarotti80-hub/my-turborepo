@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "installCommand": "pnpm install",
   "builds": [
     {
       "src": "src/backend/server.js",
@@ -23,5 +22,7 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ]
+  ],
+  
+  "installCommand": "cd ../.. && pnpm install"
 }
