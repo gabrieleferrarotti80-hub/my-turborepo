@@ -2,12 +2,10 @@
   "version": 2,
   "builds": [
     {
-      // 1. Costruisce il backend Node.js
       "src": "src/backend/server.js",
       "use": "@vercel/node"
     },
     {
-      // 2. Costruisce il frontend React (Vite)
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -17,12 +15,10 @@
   ],
   "routes": [
     {
-      // 3. Inoltra le chiamate /api/... al backend
       "src": "/api/(.*)",
       "dest": "src/backend/server.js"
     },
     {
-      // 4. Inoltra tutto il resto al frontend React
       "src": "/(.*)",
       "dest": "/index.html"
     }
