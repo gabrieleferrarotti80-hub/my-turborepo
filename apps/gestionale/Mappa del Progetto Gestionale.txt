@@ -1,0 +1,269 @@
+Mappa del Progetto Definitiva e Completa (con Modulo Agenda)
+Questo documento funge da mappa di riferimento onnicomprensiva per la struttura, le dipendenze e il flusso dei dati del progetto. L'obiettivo è fornire una panoramica chiara delle responsabilità di ogni file, con un'analisi dettagliata di tutti i moduli principali. 
+
+1. Struttura dei File per Funzione
+Questa sezione organizza i file del progetto in base al loro ruolo architetturale. 
+
+Layout e Ingresso Principale
+
+main.jsx: Punto di ingresso dell'applicazione. 
+
+
+App.jsx: Componente radice, gestisce il routing e il layout principale. 
+
+
+DashboardLayout.jsx: Definisce la struttura della dashboard (sidebar, contenuto). 
+
+
+Sidebar.jsx: Barra di navigazione laterale. 
+
+
+MainContent.jsx: Contenitore che renderizza la vista principale attiva. 
+
+
+AuthScreen.jsx: Schermata di autenticazione. 
+
+Gestione Dati e Backend (Il "Cuore" Architetturale)
+
+context/'../context/shared-core/context/FirebaseContext.jsx'.jsx: Punto di accesso centrale a Firebase, unica fonte di verità per la lettura dei dati. 
+
+
+data/schemas.js: Definisce la struttura immutabile e i valori di default di ogni dato. 
+
+
+data/dataParsers.js: "Traduttore" che pulisce e standardizza i dati letti da Firestore. 
+
+
+data/dataValidators.js: "Guardiano" che valida i dati prima di ogni operazione di scrittura. 
+
+
+firebase/firebaseConfig.jsx: Contiene le credenziali di connessione a Firebase. 
+
+
+permissions.js: Centralizza le regole di accesso alle viste per i ruoli utente. 
+
+Logica di Business (I "Cervelli")
+
+components/useArticoliManager.jsx 
+
+
+components/useAssegnazioniManager.jsx 
+
+hooks/useAgendaManager.jsx [NUOVO]
+
+
+components/useCantieriManager.jsx 
+
+
+components/useClientsManager.jsx 
+
+
+components/useCompaniesManager.jsx 
+
+
+components/useDocumentiManager.jsx 
+
+
+components/useGuastiManager.jsx 
+
+
+components/usePersonnelManager.jsx 
+
+
+components/useRiconsegneManager.jsx 
+
+
+components/useSegnalazioniGuasti.jsx 
+
+Viste Principali ("Orchestratori")
+views/AgendaContent.jsx [NUOVO]
+
+
+views/CompaniesContent.jsx 
+
+
+views/PersonnelContent.jsx 
+
+
+views/ClientsContent.jsx 
+
+
+views/MagazzinoContent.jsx 
+
+
+views/DocumentiContent.jsx 
+
+
+views/ProgettiContent.jsx 
+
+
+views/CantiereDashboard.jsx 
+
+
+views/GestioneAziendeAdminView.jsx 
+
+Form di Inserimento/Modifica
+
+forms/AddPersonnelForm.jsx 
+
+forms/AggiungiEventoForm.jsx [NUOVO]
+
+
+forms/AggiungiDocumentoForm.jsx 
+
+
+forms/AddClientForm.jsx 
+
+
+forms/AggiungiArticoloForm.jsx 
+
+
+forms/ModificaArticoloForm.jsx 
+
+
+forms/AssegnaAttrezzaturaForm.jsx 
+
+
+forms/AggiungiCantiereForm.jsx 
+
+
+forms/AssegnaCantiereForm.jsx 
+
+
+forms/AggiungiSubcantiereForm.jsx 
+
+
+forms/FormBuilder.jsx 
+
+Componenti Specifici e Riutilizzabili
+
+views/PersonnelDetailView.jsx 
+
+
+views/ClientDetailView.jsx 
+
+
+views/DettagliCantiereView.jsx 
+
+
+ImportExcell/ImportClients.jsx 
+
+
+ImportExcell/ImportPersonnel.jsx 
+
+
+AziendaSelector.jsx 
+
+
+ActionButtons.js 
+
+
+ThemeCustomizer.jsx 
+
+components/Calendar.jsx [NUOVO]
+
+components/UserSelector.jsx [NUOVO]
+
+components/DettagliEventoModal.jsx [NUOVO]
+
+components/DettagliScadenzaModal.jsx [NUOVO]
+
+2. Mappa delle Dipendenze Dettagliata (Aggiornata)
+Punto di Ingresso e Layout
+
+App.jsx: Dipende da AuthScreen.jsx, DashboardLayout.jsx, context/'../context/shared-core/context/FirebaseContext.jsx'.jsx. 
+
+
+DashboardLayout.jsx: Dipende da MainContent.jsx, Sidebar.jsx. 
+
+Sidebar.jsx: [AGGIORNATO] Dipende da context/'../context/shared-core/context/FirebaseContext.jsx'.jsx, permissions.js, AziendaSelector.jsx. La voce "Dashboard" è stata sostituita da "Agenda". 
+
+MainContent.jsx: [AGGIORNATO] Dipende da AgendaContent.jsx, CompaniesContent.jsx, PersonnelContent.jsx, etc. La vista di default è ora AgendaContent.jsx.
+
+Logica di Business (Custom Hooks)
+useDocumentiManager.jsx: Gestisce il ciclo di vita dei documenti. Include 
+
+addDocumento (Storage, Firestore), updateDocumento e deleteDocumento (Storage, Firestore). Dipende da 
+
+context/'../context/shared-core/context/FirebaseContext.jsx'.jsx, dataValidators.js, firebaseConfig.jsx. 
+
+useAgendaManager.jsx: [NUOVO] Gestisce il ciclo di vita degli eventi e il flusso di conferma.
+
+Responsabilità: addEvento, updateEvento, deleteEvento, e le nuove azioni confermaEvento, rifiutaEvento, proponiModifica. Gestisce la creazione dello storico e delle notifiche.
+
+Dipende da: context/'../context/shared-core/context/FirebaseContext.jsx'.jsx, dataValidators.js, schemas.js.
+
+Viste Principali ("Orchestratori")
+AgendaContent.jsx: [NUOVO] Orchestratore del modulo Agenda.
+
+Responsabilità:
+
+Consumare eventi, documenti, users e userRole da useFirebaseData.
+
+Gestire la navigazione tra i mesi (currentDate).
+
+Gestire lo stato per la selezione dell'utente (selectedUserId).
+
+Filtrare eventi e scadenze in base alla selezione.
+
+Orchestrare l'apertura e la chiusura di tutti i modali (AggiungiEventoForm, DettagliEventoModal, DettagliScadenzaModal, AggiungiDocumentoForm).
+
+Dipende da: Calendar.jsx, AggiungiEventoForm.jsx, DettagliEventoModal.jsx, DettagliScadenzaModal.jsx, UserSelector.jsx, AggiungiDocumentoForm.jsx, context/'../context/shared-core/context/FirebaseContext.jsx'.jsx.
+
+3. Blueprint Architetturale: Il Nuovo Modulo Agenda
+Il modulo Agenda sostituisce la Dashboard come vista principale e introduce un'avanzata logica multi-utente, di scadenziario e collaborativa.
+
+Flusso di Lettura e Visualizzazione
+
+Caricamento Dati: '../context/shared-core/context/FirebaseContext.jsx'.jsx si sottoscrive in tempo reale alle collezioni eventi e documenti, filtrando per il companyID attivo. 
+
+Orchestrazione: AgendaContent.jsx riceve tutti gli eventi e documenti dell'azienda dal context.
+
+Filtraggio Intelligente:
+
+Selezione Utente: Un UserSelector.jsx (visibile ai ruoli manager) permette di scegliere una vista: "Tutti gli utenti", un utente specifico, o "Scadenziario Documenti".
+
+Logica Condizionale: La logica filteredEvents in AgendaContent.jsx si occupa di:
+
+Se è selezionato "Scadenziario", trasforma i documenti con dataScadenza in oggetti-evento da visualizzare.
+
+Altrimenti, filtra la collezione eventi in base all'utente selezionato (o a tutti, o solo a sé stesso per i ruoli non-manager).
+
+Rendering: L'array di eventi filtrato viene passato al componente di presentazione Calendar.jsx, che si occupa solo di disegnare la griglia e gli eventi, colorandoli in base al loro stato.
+
+Flusso di Scrittura e Collaborazione (Creazione Evento)
+Azione Utente: Un manager clicca su "Aggiungi Evento" in AgendaContent.jsx. Si apre AggiungiEventoForm.jsx.
+
+Form Intelligente: Il form mostra un UserSelector.jsx che permette al manager di scegliere per chi creare l'evento.
+
+Logica di Business (useAgendaManager.jsx): Al salvataggio, addEvento viene chiamato.
+
+Creazione Oggetto: Viene creato un nuovo oggetto-evento usando eventoSchema come base.
+
+Stato Iniziale: Se l'evento è creato per un'altra persona (isForOtherUser), il suo stato viene impostato a da_confermare. Altrimenti, è confermato.
+
+Partecipanti: Viene popolato l'array partecipanti con i ruoli 'organizzatore' e 'invitato'.
+
+Storico: Viene creato il primo record nello storico dell'evento.
+
+Notifica: Se l'evento è per un altro utente, viene creata una nuova entry nella collezione notifiche con il destinatarioId corretto.
+
+Reattività: Il '../context/shared-core/context/FirebaseContext.jsx' rileva il nuovo evento e aggiorna l'UI di tutti gli utenti in tempo reale.
+
+Flusso di Interazione e Modifica (Collaborazione)
+Click sull'Evento: L'utente invitato clicca sull'evento (giallo, da_confermare) nel suo Calendar.jsx.
+
+Modale Dettagli: AgendaContent.jsx apre DettagliEventoModal.jsx, passando i dati dell'evento.
+
+Azioni Condizionali: Il modale DettagliEventoModal.jsx controlla se l'utente loggato è l'invitato (isInvitato) e se lo stato è da_confermare. Se sì, mostra i pulsanti "Conferma" e "Rifiuta".
+
+Aggiornamento Stato: Al click su "Conferma", viene chiamata confermaEvento da useAgendaManager.jsx.
+
+Questa funzione usa updateDoc e arrayUnion per cambiare lo stato dell'evento in confermato e aggiungere una nuova voce allo storico.
+
+Reattività: Il '../context/shared-core/context/FirebaseContext.jsx' rileva la modifica e aggiorna l'UI in tempo reale: l'evento, nel calendario di tutti, diventerà verde.
+
+Flusso di Modifica: Dal modale dei dettagli, ogni utente può cliccare su "Modifica". Questo chiude il modale dei dettagli e apre AggiungiEventoForm.jsx pre-compilato, permettendo un ciclo di modifica.
+
+
+Fonti

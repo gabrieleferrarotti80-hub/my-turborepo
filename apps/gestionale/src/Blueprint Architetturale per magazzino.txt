@@ -1,0 +1,141 @@
+Blueprint Architetturale per AI - Modulo Magazzino Gestione Attrezzature
+Versione: 2.1
+Autore: [Il tuo nome/team]
+Scopo: Questo documento fornisce una descrizione tecnica esaustiva dell'architettura del modulo "Magazzino". È progettato per essere la fonte unica di verità per qualsiasi sviluppatore o sistema di intelligenza artificiale che debba comprendere, mantenere o estendere il codice.
+
+1. Sommario Esecutivo
+Il modulo "Magazzino" è un sistema di gestione di asset (attrezzature) progettato per un'applicazione gestionale multi-azienda. Il suo scopo è tracciare il ciclo di vita completo di ogni singolo pezzo di attrezzatura, dalla sua creazione e acquisto fino alla sua eventuale dismissione.
+
+Utente Target Primario: Amministratore di sistema o Magazziniere.
+
+Core Functionalities:
+
+Gestione dell'inventario (CRUD di singoli asset).
+
+Assegnazione di attrezzature ai dipendenti.
+
+Gestione delle riconsegne.
+
+Tracciamento e gestione di guasti e furti.
+
+Archiviazione storica di ogni evento relativo a un asset.
+
+2. Principi Architetturali Fondamentali
+L'architettura si fonda su tre pilastri non negoziabili:
+
+Fonte Unica di Verità (Single Source of Truth - SSoT): Il componente src/context/'../context/shared-core/context/FirebaseContext.jsx'.jsx è l'unico punto dell'applicazione responsabile della lettura dei dati in tempo reale da Firestore. Nessun altro componente o hook può leggere direttamente i dati. Questo garantisce che lo stato dell'UI sia sempre una rappresentazione coerente del database.
+
+Separazione delle Responsabilità (Separation of Concerns - SoC): La logica è rigorosamente disaccoppiata dalla presentazione.
+
+Hook di Logica (/components/use...Manager.jsx): Sono i "cervelli". Contengono tutta la logica di scrittura (creazione, modifica, eliminazione) e le transazioni atomiche. Non restituiscono mai JSX.
+
+Componenti di Presentazione (/components/...View.jsx, /components/...Form.jsx): Sono "stupidi". Ricevono dati e funzioni tramite props e visualizzano la UI. Non contengono logica di business.
+
+Orchestratore (/MagazzinoContent.jsx): È il "controllore del traffico". Collega i dati dalla SSoT e le funzioni di logica dagli Hook ai componenti di presentazione corretti in base allo stato della UI.
+
+Archiviazione Event-Driven (Event Sourcing): Non ci limitiamo a salvare lo stato attuale di un oggetto. Ogni azione significativa che modifica un'entità viene registrata come un evento immutabile in un "diario di bordo" dedicato. Questo ci permette di ricostruire la storia completa di qualsiasi asset.
+
+3. Modello Dati Dettagliato (Firestore)
+Il sistema utilizza tre collezioni Firestore principali:
+
+A. attrezzature
+Scopo: Rappresenta lo stato attuale di ogni singolo pezzo fisico dell'inventario.
+
+Schema (attrezzaturaSchema):
+
+nome, seriale, categoria: Dati identificativi.
+
+stato: Campo cruciale che descrive la condizione fisica e la disponibilità attuale. Valori possibili:
+
+'disponibile': In magazzino, pronto per essere assegnato.
+
+'in uso': Assegnato a un dipendente che ha confermato la presa in carico.
+
+'in riparazione': Segnalato come guasto e preso in carico dall'admin.
+
+'perso/rubato': Segnalato come perso/rubato e preso in carico.
+
+dettagli, documenti: Dati accessori.
+
+B. assegnazioniMagazzino
+Scopo: Traccia le assegnazioni attualmente in corso o in attesa di azione. Un documento qui rappresenta un "prestito" attivo. Viene creato all'assegnazione e distrutto alla sua conclusione (restituzione, guasto accettato).
+
+Schema (assegnazioneSchema):
+
+attrezzaturaID, utenteID, attrezzaturaNome, utenteNome: Riferimenti e dati denormalizzati.
+
+statoWorkflow: Campo chiave che descrive lo stato del processo digitale di assegnazione.
+
+'da confermare': L'admin ha assegnato, in attesa della conferma del dipendente.
+
+'attiva': Il dipendente ha confermato la presa in carico.
+
+'restituzione richiesta': Il dipendente ha richiesto di restituire l'attrezzo.
+
+'guasto segnalato', 'furto segnalato': Il dipendente ha segnalato un problema.
+
+storico: Un array interno che traccia gli eventi di questa specifica assegnazione.
+
+C. archivioAttrezzatura (Il Diario di Bordo)
+Scopo: Questa è la collezione più importante per l'analisi storica. Ogni documento rappresenta la vita intera di un singolo attrezzo. Viene creato insieme all'attrezzo e poi solo aggiornato.
+
+Schema (archivioAttrezzaturaSchema):
+
+attrezzaturaID, seriale, attrezzaturaNome: Dati identificativi per la ricerca.
+
+eventi: Un array che contiene un oggetto per ogni evento significativo accaduto all'attrezzo. Esempio di un evento:
+
+{
+  "tipo": "assegnazione",
+  "timestamp": "September 25, 2025 at 2:34:15 PM UTC+2",
+  "utente": "admin_user_id",
+  "assegnatoA": "employee_user_id",
+  "dettagli": "Assegnato a Mario Rossi."
+}
+
+I tipo di evento possibili sono: creazione, modifica, assegnazione, conferma_presa_in_carico, restituzione, guasto_accettato, riparazione, dismissione.
+
+4. Flusso di Lavoro Esemplificativo: Un Guasto Completo
+Per illustrare come i moduli interagiscono, seguiamo il flusso completo di un guasto.
+
+Segnalazione (Dipendente):
+
+L'utente apre la vista DettagliAssegnazioneView per un'assegnazione 'attiva'.
+
+Clicca su "Segnala Guasto".
+
+La UI chiama la funzione segnalaGuasto da useGuastiManager.jsx.
+
+L'hook aggiorna il documento in assegnazioniMagazzino, cambiando il suo statoWorkflow in 'guasto segnalato'.
+
+Presa in Carico (Admin):
+
+L'admin naviga alla vista "Guasti". MagazzinoContent.jsx filtra la lista assegnazioni e mostra solo quelle con stato 'guasto segnalato' nella GestioneGuastiView.
+
+L'admin clicca "Accetta".
+
+La UI chiama accettaSegnalazione da useGuastiManager.jsx.
+
+L'hook esegue una transazione che:
+
+Archivia l'assegnazione in archivioAssegnazioniMagazzino e la elimina da assegnazioniMagazzino.
+
+Aggiorna lo stato del documento in attrezzature a 'in riparazione'.
+
+Aggiunge un evento di tipo 'guasto_accettato' al "diario di bordo" dell'attrezzo in archivioAttrezzatura.
+
+Risoluzione (Admin):
+
+Nella seconda tabella di GestioneGuastiView, l'admin vede l'attrezzo "in riparazione".
+
+Clicca su "Riparato".
+
+La UI chiama risolviRiparazione da useGuastiManager.jsx.
+
+L'hook esegue una transazione che:
+
+Riporta lo stato dell'attrezzo in attrezzature a 'disponibile'.
+
+Aggiunge un evento di tipo 'riparazione' al diario dell'attrezzo in archivioAttrezzatura.
+
+Il ciclo è concluso, e ogni passaggio è stato registrato in modo immutabile.

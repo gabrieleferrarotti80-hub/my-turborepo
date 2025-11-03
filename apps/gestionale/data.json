@@ -1,0 +1,11 @@
+{
+  "magazzino": {
+    "articoloDiProva": {
+      "assegnatoA": "ID_UTENTE_DI_PROVA",
+      "quantita": 1,
+      "marca": "Test",
+      "modello": "Articolo",
+      "categoria": "CategoriaTest"
+    }
+  }
+}

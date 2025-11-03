@@ -1,0 +1,220 @@
+Blueprint Definitivo: Centralizzazione del Modulo Magazzino
+Obiettivo: Migrare tutta la logica di business del magazzino in shared-core e tutti i componenti UI riutilizzabili in shared-ui, lasciando in gestionale solo i componenti "contenitore" che orchestrano il flusso. Infine, rendere l'accesso al modulo Magazzino dipendente dai permessi aziendali.
+
+🧱 Fase 1: Centralizzare Tutta la Logica di Business in shared-core
+In questa fase, estrarremo tutta la logica di interazione con il database dai componenti e la sposteremo in "hooks manager" dedicati all'interno del pacchetto shared-core.
+
+1.1: Creare l'Hook useArticoliManager.js
+Questo hook gestirà l'aggiunta, la modifica e l'eliminazione degli articoli dall'inventario.
+
+Azione: Crea il file packages/shared-core/src/hooks/useArticoliManager.js.
+
+Codice:
+
+JavaScript
+
+// packages/shared-core/src/hooks/useArticoliManager.js
+import { useState } from 'react';
+import { doc, addDoc, updateDoc, deleteDoc, collection, serverTimestamp } from 'firebase/firestore';
+// Assumi di avere i tuoi parser e schemi qui
+import { attrezzaturaSchema } from '../data/schemas';
+
+export const useArticoliManager = (db, user, userAziendaId) => {
+    const [isAdding, setIsAdding] = useState(false);
+
+    const addArticolo = async (articoloData) => {
+        setIsAdding(true);
+        try {
+            const articoliCollection = collection(db, 'attrezzature');
+            await addDoc(articoliCollection, {
+                ...attrezzaturaSchema,
+                ...articoloData,
+                companyID: userAziendaId,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            });
+            return { success: true, message: 'Articolo aggiunto con successo.' };
+        } catch (error) {
+            return { success: false, message: `Errore: ${error.message}` };
+        } finally {
+            setIsAdding(false);
+        }
+    };
+
+    const deleteArticolo = async (articolo) => {
+        try {
+            await deleteDoc(doc(db, 'attrezzature', articolo.id));
+            return { message: 'Articolo eliminato con successo.' };
+        } catch (error) {
+            return { message: `Errore durante l'eliminazione: ${error.message}` };
+        }
+    };
+
+    // Aggiungi qui altre funzioni come updateArticolo se necessario
+
+    return { addArticolo, deleteArticolo, isAdding };
+};
+1.2: Creare l'Hook useAssegnazioniManager.js
+Questo hook gestirà la creazione di nuove assegnazioni.
+
+Azione: Crea il file packages/shared-core/src/hooks/useAssegnazioniManager.js.
+
+Codice:
+
+JavaScript
+
+// packages/shared-core/src/hooks/useAssegnazioniManager.js
+import { writeBatch, doc, collection, serverTimestamp } from 'firebase/firestore';
+
+export const useAssegnazioniManager = (db, user, userAziendaId) => {
+    const creaAssegnazioniMultiple = async (assegnazioneData) => {
+        const { utenteID, attrezzatureIDs } = assegnazioneData;
+        const batch = writeBatch(db);
+
+        attrezzatureIDs.forEach(attrezzaturaId => {
+            const newAssegnazioneRef = doc(collection(db, 'assegnazioniMagazzino'));
+            batch.set(newAssegnazioneRef, {
+                utenteId: utenteID,
+                attrezzaturaId: attrezzaturaId,
+                companyID: userAziendaId,
+                assegnatoDaId: user.uid,
+                dataAssegnazione: serverTimestamp(),
+                statoWorkflow: 'da confermare',
+                // ...altri campi necessari per un'assegnazione
+            });
+
+            // Aggiorna lo stato dell'articolo in magazzino
+            const attrezzaturaRef = doc(db, 'attrezzature', attrezzaturaId);
+            batch.update(attrezzaturaRef, { stato: 'in uso' });
+        });
+
+        await batch.commit();
+    };
+
+    return { creaAssegnazioniMultiple };
+};
+1.3: Creare l'Hook useGuastiManager.js e useRiconsegneManager.js
+Questi hook conterranno la logica specifica per la gestione dei guasti e delle riconsegne.
+
+Azione: Crea i file useGuastiManager.js e useRiconsegneManager.js in packages/shared-core/src/hooks/ sulla base della logica che hai nei tuoi componenti GestioneGuastiView e GestioneRiconsegneView.
+
+1.4: Esportare Tutti i Nuovi Hooks
+
+Azione: Modifica il file packages/shared-core/src/index.js e aggiungi le esportazioni per tutti gli hook del magazzino.
+
+Codice da aggiungere:
+
+JavaScript
+
+export * from './hooks/useArticoliManager';
+export * from './hooks/useAssegnazioniManager';
+export * from './hooks/useGuastiManager';
+export * from './hooks/useRiconsegneManager';
+🖥️ Fase 2: Centralizzare i Componenti UI in shared-ui
+Ora spostiamo tutti i componenti di presentazione nel pacchetto condiviso.
+
+2.1: Sposta i File dei Componenti
+
+Azione: Sposta i seguenti file da apps/gestionale/src/components/ (e sottocartelle) a packages/shared-ui/components/:
+
+GestioneMagazzinoView.jsx
+
+GestioneAssegnazioniMagazzinoView.jsx
+
+GestioneArchivioView.jsx
+
+GestioneGuastiView.jsx
+
+GestioneRiconsegneView.jsx
+
+AssegnazioniMenuMagazzino.jsx
+
+Riconsegne.jsx
+
+ImportMagazzino.jsx (dopo averne estratto la logica)
+
+Sposta i form in una cartella forms per ordine:
+
+AggiungiArticoloForm.jsx -> packages/shared-ui/forms/
+
+AssegnaAttrezzaturaForm.jsx -> packages/shared-ui/forms/
+
+2.2: Refactoring dei Form per Renderli "Stupidi"
+
+Azione: Apri i file AggiungiArticoloForm.jsx e AssegnaAttrezzaturaForm.jsx nelle loro nuove posizioni.
+
+Da fare: Rimuovi ogni chiamata a useFirebaseData o a qualsiasi hook manager. Assicurati che ricevano tutte le funzioni di cui hanno bisogno (onSave, addArticolo, creaAssegnazioniMultiple, etc.) tramite props. Il codice che hai già fornito per questi file è quasi perfetto in questo senso.
+
+2.3: Esportare Tutti i Componenti Spostati
+
+Azione: Apri packages/shared-ui/index.js e aggiungi le righe di esportazione per tutti i componenti che hai appena spostato, ad esempio:
+
+JavaScript
+
+export * from './components/GestioneMagazzinoView';
+export * from './forms/AggiungiArticoloForm';
+// ...e così via per tutti gli altri.
+⚙️ Fase 3: Refactoring del Contenitore MagazzinoContent.jsx in gestionale
+Questo componente rimane nel gestionale ma il suo ruolo cambia: ora orchestra i componenti condivisi.
+
+3.1: Aggiornare MagazzinoContent.jsx
+
+Azione: Sostituisci il contenuto di apps/gestionale/src/MagazzinoContent.jsx con una versione che importa gli hook da shared-core e i componenti UI da shared-ui.
+
+Codice di Esempio:
+
+JavaScript
+
+// apps/gestionale/src/MagazzinoContent.jsx
+import React, { useState } from 'react';
+import { useFirebaseData, useArticoliManager, useAssegnazioniManager /* ...altri hook... */ } from 'shared-core';
+import { GestioneMagazzinoView, AggiungiArticoloForm, AssegnaAttrezzaturaForm /* ...altri componenti... */ } from 'shared-ui';
+
+export const MagazzinoContent = ({ userRole, userAziendaId }) => {
+    // 1. Recupera i dati grezzi dal contesto
+    const { db, user, attrezzature, assegnazioni, users, loadingData } = useFirebaseData();
+
+    // 2. Inizializza tutti gli hook manager necessari
+    const { deleteArticolo } = useArticoliManager(db, user, userAziendaId);
+    // ... inizializza gli altri manager ...
+
+    // 3. Mantieni la logica di stato per la UI
+    const [view, setView] = useState('magazzino');
+    // ...
+
+    const renderContent = () => {
+        switch (view) {
+            case 'magazzino':
+                // 4. Passa dati e funzioni ai componenti "stupidi" importati da shared-ui
+                return <GestioneMagazzinoView articoli={attrezzature} handleDelete={deleteArticolo} setLocalView={setView} />;
+            // ... altri casi per le altre viste ...
+        }
+    };
+
+    return (
+        <div className="container mx-auto p-4">
+            {/* La tua navigazione interna (NavButton) */}
+            {renderContent()}
+        </div>
+    );
+};
+🔐 Fase 4: Integrare con il Sistema di Permessi
+Questo è l'ultimo passo per rendere il modulo opzionale.
+
+4.1: Proteggere la Navigazione
+
+Azione: Apri apps/gestionale/src/Sidebar.jsx.
+
+Da fare: Avvolgi la voce di menu "Magazzino" con un controllo basato sui permessi che carichiamo nel FirebaseContext.
+
+JavaScript
+
+// In Sidebar.jsx
+const { companyFeatures } = useFirebaseData();
+// ...
+{companyFeatures?.magazzino && (
+    <MenuItem onClick={() => onNavigate('magazzino')}>
+        {/* Icona e testo per il Magazzino */}
+    </MenuItem>
+)}
+Seguendo questo blueprint, avrai migrato con successo l'intera logica del magazzino, rendendola coerente con l'architettura del tuo monorepo e controllabile tramite il sistema di permessi.

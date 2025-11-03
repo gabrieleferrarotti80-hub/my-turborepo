@@ -1,0 +1,85 @@
+Struttura e File Principali
+Il progetto ha una struttura chiara, con la maggior parte dei file all'interno della cartella /src. I file principali gestiscono le funzionalità di base dell'applicazione:
+
+
+index.jsx: È il punto d'ingresso che avvia l'applicazione, collegandola al documento HTML e assicurando che venga renderizzata in React StrictMode.
+
+App.jsx: Il componente radice che gestisce il routing principale (activeView) e l'autenticazione. Incapsula l'intera applicazione nel 
+
+FirebaseProvider per rendere i dati globalmente accessibili.
+
+
+firebaseConfig.jsx: Contiene le credenziali API di Firebase e inizializza i servizi di Auth e Firestore, esportando gli oggetti auth e db per l'uso in altri file.
+
+'../context/shared-core/context/FirebaseContext.jsx'.jsx: Agisce come "database bridge" e gestore dello stato globale. Si connette a Firestore usando 
+
+onSnapshot per ottenere dati in tempo reale e li rende accessibili a tutti i componenti tramite l'hook personalizzato useFirebaseData.
+
+
+permissions.js: Centralizza la logica di business e le autorizzazioni per ogni ruolo utente, definendo quali viste e funzionalità sono accessibili.
+
+Componenti Principali e Ruoli
+Alcuni componenti svolgono ruoli cruciali per la gestione dei contenuti e la navigazione:
+
+
+DashboardLayout.jsx: Il componente di layout principale che struttura l'interfaccia dell'utente autenticato, organizzando la Sidebar e il MainContent in un layout a due colonne.
+
+
+Sidebar.jsx: Il componente di navigazione che mostra le opzioni di menu in base al ruolo dell'utente e gestisce il logout.
+
+
+MainContent.jsx: Funge da "router" per le viste principali (es. Dashboard, Personale, Clienti). Non gestisce più le viste della sezione "Gestione Operativa", delegandole a un altro componente.
+
+
+
+MainOperativeView.jsx: È il router interno per la sezione operativa, gestendo la navigazione tra le diverse sottosezioni come Cantieri, Assegnazioni e Rapportini.
+
+GestioneOperativaView.jsx: Dashboard della sezione operativa che mostra un menu di navigazione basato su schede. Abilita o disabilita le schede in base ai permessi dell'utente.
+
+Gestione dei Dati e del Flusso
+Il flusso dei dati è 
+
+unidirezionale, partendo dal contesto verso i componenti.
+
+
+Inizio: L'applicazione inizializza il '../context/shared-core/context/FirebaseContext.jsx'.
+
+
+Connessione: Il '../context/shared-core/context/FirebaseContext.jsx' si connette a Firestore e utilizza onSnapshot per ascoltare le modifiche in tempo reale.
+
+
+Lettura: Componenti come CantieriList.jsx usano l'hook useFirebaseData per leggere i dati aggiornati dal contesto e visualizzarli.
+
+Azione: Le azioni dell'utente (ad esempio, cliccare su un cantiere) possono innescare aggiornamenti nel database.
+
+
+Reattività: Il onSnapshot di Firestore rileva l'aggiornamento, il '../context/shared-core/context/FirebaseContext.jsx' si aggiorna di conseguenza, e tutti i componenti che usano useFirebaseData ricevono automaticamente i nuovi dati.
+
+Componenti di Gestione
+Questi componenti si occupano di gestire sezioni specifiche dell'app:
+
+
+AuthScreen.jsx: Gestisce l'interfaccia utente per l'accesso e la registrazione, interagendo con Firebase Authentication e salvando i dati del nuovo utente in Firestore.
+
+CompaniesContent.jsx: Gestisce l'interfaccia per visualizzare e creare nuove aziende e i rispettivi amministratori. Interagisce con Firebase Auth per creare nuovi account e con Firestore per salvare i dati.
+
+
+ClientsContent.jsx: Gestisce clienti, permettendo di visualizzarli, aggiungerli, modificarli e cancellarli. Utilizza 
+
+onSnapshot per la gestione dei dati in tempo reale.
+
+
+
+PersonnelContent.jsx: Gestisce il personale, visualizzando un elenco che può essere filtrato e mostrando dati specifici solo a determinati ruoli.
+
+
+
+CantieriList.jsx: Visualizza l'elenco dei cantieri con funzionalità di ricerca locale. Ottiene i dati direttamente da 
+
+'../context/shared-core/context/FirebaseContext.jsx'.
+
+
+DettagliCantiereView.jsx: Mostra i dettagli di un cantiere specifico e dei suoi subcantieri, ascoltando le modifiche in tempo reale tramite onSnapshot.
+
+
+ImportClients.jsx e ImportPersonnel.jsx: Questi componenti si occupano dell'importazione massiva di dati da file Excel, interagendo con Firebase Authentication e Firestore per creare utenti e salvare i dati.

@@ -1,0 +1,140 @@
+Blueprint Definitivo (Aggiornato): Centralizzazione del Modulo Magazzino
+Obiettivo: Unificare gli hook esistenti, spostare i componenti UI in shared-ui, refattorizzare MagazzinoContent e integrare i permessi.
+
+🧱 Fase 1: Unificare e Finalizzare la Logica in shared-core
+I tuoi hook sono già quasi perfetti. Li unificheremo in un unico "mega-hook" per semplicità e coerenza con il resto dell'architettura, e ci assicureremo che ricevano tutte le dipendenze dal FirebaseContext.
+
+1.1: Unificare la Logica in useMagazzinoManager.js
+Invece di avere tanti piccoli hook, li combineremo in un unico gestore principale. Questo semplificherà l'utilizzo nei componenti.
+
+Azione: Sostituisci il contenuto di tutti i tuoi hook relativi al magazzino (useArticoliManager.jsx, useAssegnazioniManager.jsx, useGuastiManager.jsx, useRiconsegneManager.jsx, etc.) con un unico file finale: packages/shared-core/src/hooks/useMagazzinoManager.js.
+
+Codice Unificato:
+
+JavaScript
+
+// packages/shared-core/src/hooks/useMagazzinoManager.js
+import { useState } from 'react';
+import { doc, runTransaction, arrayUnion, Timestamp, query, where, getDocs, collection, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { useFirebaseData } from '../context/FirebaseContext'; // Per db, user, userAziendaId
+
+export const useMagazzinoManager = () => {
+    const { db, user, userAziendaId } = useFirebaseData();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    // --- Logica da useArticoliManager ---
+    const addArticolo = async (articoloData) => { /* ... la tua logica ... */ };
+    const deleteArticolo = async (articolo) => { /* ... la tua logica ... */ };
+
+    // --- Logica da useAssegnazioniManager ---
+    const creaAssegnazioniMultiple = async ({ utenteID, attrezzatureIDs }) => { /* ... la tua logica ... */ };
+    const confermaPresaInCarico = async (assegnazioneId) => { /* ... la tua logica ... */ };
+
+    // --- Logica da useGuastiManager ---
+    const segnalaGuasto = async (assegnazione, tipoSegnalazione, note) => { /* ... la tua logica ... */ };
+    const accettaSegnalazione = async (assegnazione) => { /* ... la tua logica ... */ };
+    const risolviRiparazione = async (attrezzatura) => { /* ... la tua logica ... */ };
+    const dismettiArticolo = async (attrezzatura) => { /* ... la tua logica ... */ };
+
+    // --- Logica da useRiconsegneManager ---
+    const richiediRestituzione = async (assegnazione, note) => { /* ... la tua logica ... */ };
+    const accettaRestituzione = async (assegnazione) => { /* ... la tua logica ... */ };
+
+    // Ritorna tutte le funzioni in un unico oggetto
+    return {
+        isLoading,
+        error,
+        addArticolo,
+        deleteArticolo,
+        creaAssegnazioniMultiple,
+        confermaPresaInCarico,
+        segnalaGuasto,
+        accettaSegnalazione,
+        risolviRiparazione,
+        dismettiArticolo,
+        richiediRestituzione,
+        accettaRestituzione,
+    };
+};
+Nota: Ho omesso il corpo delle funzioni per brevità. Devi semplicemente copiare e incollare il contenuto delle funzioni dai tuoi file esistenti all'interno di questo nuovo hook unificato.
+
+1.2: Esportare l'Hook Unificato
+
+Azione: Modifica packages/shared-core/src/index.js per esportare solo il nuovo manager.
+
+Codice da aggiungere:
+
+JavaScript
+
+// packages/shared-core/src/index.js
+// Rimuovi le esportazioni dei vecchi hook
+export * from './hooks/useMagazzinoManager'; // Aggiungi questa
+🖥️ Fase 2: Centralizzare i Componenti UI in shared-ui
+Questa fase rimane quasi invariata.
+
+2.1: Sposta i Componenti "Stupidi"
+
+Azione: Sposta i seguenti file da apps/gestionale/src/components/ a packages/shared-ui/components/:
+
+GestioneMagazzinoView.jsx
+
+GestioneAssegnazioniMagazzinoView.jsx
+
+GestioneGuastiView.jsx
+
+GestioneRiconsegneView.jsx
+
+GestioneArchivioView.jsx
+
+AssegnazioniMenuMagazzino.jsx
+
+Riconsegne.jsx
+
+Sposta i form in packages/shared-ui/forms/:
+
+AggiungiArticoloForm.jsx
+
+AssegnaAttrezzaturaForm.jsx
+
+ImportMagazzino.jsx
+
+2.2: Refactoring dei Form (Verifica)
+
+Azione: Apri i file AggiungiArticoloForm.jsx e AssegnaAttrezzaturaForm.jsx nelle loro nuove posizioni.
+
+Da fare: Assicurati che non contengano chiamate a useFirebaseData o a hooks manager, ma che ricevano tutte le funzioni di cui hanno bisogno (onSave, etc.) tramite props. Il tuo codice è già quasi perfetto.
+
+2.3: Esportare Tutti i Componenti
+
+Azione: Apri packages/shared-ui/index.js e aggiungi le righe di esportazione per tutti i componenti che hai spostato.
+
+⚙️ Fase 3: Refactoring del Contenitore MagazzinoContent.jsx
+Questo componente ora orchestra i pezzi condivisi.
+
+3.1: Aggiornare MagazzinoContent.jsx
+
+Azione: Sostituisci il contenuto di apps/gestionale/src/MagazzinoContent.jsx.
+
+Logica da Implementare:
+
+Importa i dati (attrezzature, assegnazioni, etc.) da useFirebaseData().
+
+Importa tutte le funzioni (deleteArticolo, creaAssegnazioniMultiple, etc.) da useMagazzinoManager().
+
+Importa tutti i componenti UI (GestioneMagazzinoView, etc.) da shared-ui.
+
+Mantieni la logica di stato per la UI (view, selectedItem).
+
+Nel renderContent, passa i dati e le funzioni come props ai componenti UI importati.
+
+🔐 Fase 4: Integrare con il Sistema di Permessi (Invariato)
+L'ultimo passo è proteggere l'accesso al modulo.
+
+4.1: Proteggere la Navigazione
+
+Azione: Apri apps/gestionale/src/Sidebar.jsx.
+
+Da fare: Avvolgi la voce di menu "Magazzino" con un controllo sui permessi: {companyFeatures?.magazzino && ...}.
+
+Questo blueprint aggiornato rispetta il lavoro che hai già fatto, unificandolo in una struttura finale coerente e robusta.

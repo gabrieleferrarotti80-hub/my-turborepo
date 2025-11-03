@@ -1,0 +1,101 @@
+Blueprint Aggiornato per un Magazzino Modulare
+Data questa nuova e migliore strategia, aggiorniamo il nostro piano d'azione.
+
+🧱 Fase 1: Creare Hooks Logici Granulari in shared-core
+Creeremo hook separati, ognuno con una responsabilità chiara.
+
+1.1: Hook per l'Inventario (useArticoliManager.js)
+
+Responsabilità: Gestire il ciclo di vita di un articolo (CRUD: Create, Read, Update, Delete).
+
+Azione: Rivedi il tuo file useArticoliManager.jsx esistente per assicurarti che contenga solo le funzioni addArticolo, updateArticolo e deleteArticolo. È già quasi perfetto così.
+
+1.2: Hook per le Assegnazioni (useAssegnazioniManager.js)
+
+Responsabilità: Gestire il flusso di lavoro di un'assegnazione.
+
+Azione: Rivedi il tuo file useAssegnazioniManager.jsx per assicurarti che contenga creaAssegnazioniMultiple, confermaPresaInCarico, e la logica di useRiconsegneManager e useGuastiManager (che possiamo unire qui).
+
+Funzioni da includere:
+
+creaAssegnazioniMultiple
+
+confermaPresaInCarico
+
+richiediRestituzione
+
+accettaRestituzione
+
+segnalaGuasto
+
+accettaSegnalazione
+
+risolviRiparazione
+
+dismettiArticolo
+
+1.3: Aggiornare la Definizione delle Funzionalità
+
+Azione: Modifica packages/shared-core/src/data/features.js per riflettere i due livelli di permesso.
+
+Codice Aggiornato:
+
+JavaScript
+
+export const ALL_FEATURES = [
+    { id: 'magazzino_inventario', name: 'Magazzino: Inventario', description: 'Gestione base dell\'inventario attrezzature (aggiunta, modifica, eliminazione).' },
+    { id: 'magazzino_assegnazioni', name: 'Magazzino: Assegnazioni', description: 'Sistema avanzato per assegnare, restituire e gestire guasti/furti delle attrezzature.' },
+    // ... altre funzionalità come 'agenda', 'reports', etc.
+];
+🖥️ Fase 2: Adattare l'UI (gestionale)
+Ora, il componente contenitore MagazzinoContent.jsx deve essere adattato per gestire questa separazione.
+
+2.1: Aggiornare MagazzinoContent.jsx
+
+Azione: Modifica apps/gestionale/src/MagazzinoContent.jsx.
+
+Logica da Implementare:
+
+Usa useFirebaseData() per ottenere i dati (attrezzature, assegnazioni, users) e i permessi (companyFeatures).
+
+Mostra un messaggio di "Funzionalità non abilitata" se companyFeatures.magazzino_inventario è false.
+
+Inizializza entrambi gli hook: useArticoliManager() e useAssegnazioniManager().
+
+Mostra i pulsanti di navigazione (es. "Assegnazioni", "Guasti") solo se companyFeatures.magazzino_assegnazioni è true.
+
+Passa le funzioni e i dati corretti ai componenti UI figli importati da shared-ui.
+
+Esempio di codice in MagazzinoContent.jsx:
+
+JavaScript
+
+import { useFirebaseData, useArticoliManager, useAssegnazioniManager } from 'shared-core';
+
+export const MagazzinoContent = () => {
+    const { companyFeatures, attrezzature, assegnazioni, users } = useFirebaseData();
+    const { addArticolo, deleteArticolo } = useArticoliManager();
+    const { creaAssegnazioniMultiple, /* ... */ } = useAssegnazioniManager();
+
+    if (!companyFeatures?.magazzino_inventario) {
+        return <p>Modulo Magazzino non abilitato per questa azienda.</p>;
+    }
+
+    return (
+        <div>
+            {/* Pulsanti di navigazione */}
+            <NavButton targetView="magazzino" label="Inventario" />
+
+            {/* Mostra i pulsanti avanzati solo se il permesso è attivo */}
+            {companyFeatures?.magazzino_assegnazioni && (
+                <>
+                    <NavButton targetView="assegnazioni-menu" label="Assegnazioni" />
+                    <NavButton targetView="guasti" label="Guasti" />
+                    {/* ... */}
+                </>
+            )}
+
+            {/* ... renderContent che usa i componenti da shared-ui ... */}
+        </div>
+    );
+};

@@ -1,0 +1,14 @@
+{
+  "name": "shared-core",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "firebase": "^12.2.1"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

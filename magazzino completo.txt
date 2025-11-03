@@ -1,0 +1,166 @@
+Blueprint Avanzato: Modulo Magazzino Unificato (Definitivo)
+Obiettivo: Creare un modulo Magazzino unificato con dashboard interna, separando l'Inventario Attrezzature/Materiali dalla logica di Assegnazioni/Flusso Lavoro, e implementando un sistema di permessi granulare in linea con l'architettura monorepo.
+
+🧱 Fase 1: Riorganizzare l'Interfaccia Utente (apps/gestionale)
+(Status: ✅ Completata, ma dobbiamo verificare l'integrazione dei permessi in Fase 4)
+
+Passo	Azione	File	Stato
+1.1	Creare la MagazzinoSidebar.jsx con voci 'Attrezzature', 'Materiali', 'Assegnazioni'.	apps/gestionale/src/components/MagazzinoSidebar.jsx	
+✅ 
+
+
+1.2	Creare il MagazzinoDashboardLayout.jsx come contenitore principale con la nuova sidebar e placeholder per le viste.	apps/gestionale/src/MagazzinoDashboardLayout.jsx	
+✅ 
+
+
+1.3	Aggiornare MainContent.jsx per usare il nuovo layout.	apps/gestionale/src/MainContent.jsx	
+✅ 
+
+⚙️ Fase 2: Adattare e Centralizzare la Logica (shared-core)
+(Correzione del Blueprint: Mantenere e finalizzare la separazione degli hook, in linea con l'architettura monorepo e le esigenze di licenza.)
+
+2.1: Finalizzare l'Hook per l'Inventario (Articoli & Materiali)
+Azione: Finalizza il file per la gestione CRUD di tutti gli articoli (Attrezzature e Materiali).
+
+File: packages/shared-core/src/hooks/useArticoliManager.js
+
+Da fare: Assicurati che questo hook contenga solo le funzioni base di gestione dell'inventario:
+
+addArticolo (con logica per gestire sia Attrezzature che Materiali).
+
+updateArticolo.
+
+deleteArticolo.
+
+Deve importare db, user, e userAziendaId dal contesto (monorepo/monopreo).
+
+2.2: Finalizzare l'Hook per il Flusso di Lavoro (Assegnazioni)
+Azione: Unisci tutta la logica di flusso di lavoro (Assegnazioni, Riconsegne, Guasti) in un unico gestore.
+
+File: packages/shared-core/src/hooks/useAssegnazioniManager.js
+
+Da fare: Questo hook deve contenere tutta la logica complessa che interagisce con lo stato degli articoli, includendo le funzioni concordate:
+
+
+creaAssegnazioniMultiple.
+
+
+confermaPresaInCarico.
+
+Logica di Guasti/Riparazioni (segnalaGuasto, accettaSegnalazione, risolviRiparazione, dismettiArticolo).
+
+Logica di Riconsegna (richiediRestituzione, accettaRestituzione).
+
+2.3: Esportare gli Hook Finali
+Azione: Aggiorna l'indice per esportare solo gli hook finali del magazzino.
+
+File: packages/shared-core/src/index.js
+
+Codice da modificare:
+
+JavaScript
+
+// packages/shared-core/src/index.js
+export * from './hooks/useArticoliManager';
+export * from './hooks/useAssegnazioniManager';
+// Rimuovere esportazioni di vecchi hook come useGuastiManager, useRiconsegneManager, etc.
+🖥️ Fase 3: Adattare i Componenti UI e l'Orchestrazione (gestionale & shared-ui)
+(Status: ✅ Completata la struttura del contenitore, ora si passa alla migrazione UI e all'adattamento delle viste.)
+
+3.1: Refactoring e Spostamento della UI in shared-ui
+
+Azione: Sposta tutti i componenti UI riutilizzabili e rendi i form "stupidi".
+
+Da fare:
+
+Sposta le Viste in packages/shared-ui/components/: GestioneMagazzinoView.jsx, GestioneAssegnazioniMagazzinoView.jsx, GestioneGuastiView.jsx, GestioneRiconsegneView.jsx, GestioneArchivioView.jsx, AssegnazioniMenuMagazzino.jsx, Riconsegne.jsx.
+
+Sposta i Form in packages/shared-ui/forms/: AggiungiArticoloForm.jsx, AssegnaAttrezzaturaForm.jsx, ImportMagazzino.jsx.
+
+
+Refactoring: Rimuovi le chiamate dirette a useFirebaseData o agli hook manager all'interno dei Form e delle Viste, assicurandoti che ricevano tutte le funzioni (onSave, handleDelete, etc.) tramite props.
+
+
+Esporta: Aggiungi tutte le esportazioni in packages/shared-ui/index.js.
+
+3.2: Aggiornare le Viste Contenitore
+Azione: Collega le nuove viste ai nuovi hook.
+
+File: apps/gestionale/src/AttrezzatureView.jsx
+
+Da fare:
+
+Importa: useArticoliManager e useAssegnazioniManager da 'shared-core'.
+
+
+Logica: Utilizza la logica di useArticoliManager per le funzioni CRUD.
+
+File: apps/gestionale/src/AssegnazioniView.jsx
+
+Da fare:
+
+Importa: useAssegnazioniManager da 'shared-core'.
+
+
+Logica: Questo componente diventa il principale consumatore di useAssegnazioniManager, passando le funzioni di assegnazione, riconsegna e guasto ai componenti UI (AssegnaAttrezzaturaForm, etc.).
+
+🔐 Fase 4: Integrazione e Controllo dei Permessi (Correzione)
+(Correzione del Blueprint: Implementare i permessi separati e correggere la logica UI.)
+
+4.1: Definizione delle Funzionalità Separate
+Azione: Implementare i due livelli di permesso come concordato.
+
+File: packages/shared-core/src/data/features.js
+
+
+Codice Corretto (Sostituisce il punto 3.1 precedente ):
+
+JavaScript
+
+// packages/shared-core/src/data/features.js
+export const ALL_FEATURES = [
+    { 
+        id: 'magazzino_inventario', 
+        name: 'Magazzino: Inventario', 
+        description: 'Gestione base dell\'inventario attrezzature e materiali (aggiunta, modifica, eliminazione).' 
+    }, [cite: 524]
+    { 
+        id: 'magazzino_assegnazioni', 
+        name: 'Magazzino: Assegnazioni', 
+        description: 'Sistema avanzato per assegnare, restituire e gestire guasti/furti delle attrezzature.' 
+    }, [cite: 525]
+    // ... altre funzionalità ...
+];
+4.2: Proteggere l'Accesso del Modulo (Sidebar Principale)
+Azione: La voce di menu "Magazzino" deve essere visibile se è abilitata almeno una delle due nuove feature.
+
+File: apps/gestionale/src/Sidebar.jsx
+
+
+Codice da modificare (Sostituisce il punto 3.2 precedente ):
+
+JavaScript
+
+// In Sidebar.jsx
+const { companyFeatures } = useFirebaseData();
+// ...
+{ (companyFeatures?.magazzino_inventario || companyFeatures?.magazzino_assegnazioni) && (
+    <MenuItem onClick={() => onNavigate('magazzino')}>Magazzino</MenuItem>
+)}
+4.3: Proteggere la Navigazione Interna (AttrezzatureView / AssegnazioniView)
+
+Azione: Implementare il controllo dei permessi all'interno delle nuove viste.
+
+
+File: apps/gestionale/src/MagazzinoDashboardLayout.jsx (o le singole viste)
+
+Logica da Implementare:
+
+Nella MagazzinoSidebar.jsx, i pulsanti 'Assegnazioni' dovrebbero essere visualizzati/abilitati solo se companyFeatures?.magazzino_assegnazioni è vero.
+
+Nella AttrezzatureView.jsx, i pulsanti avanzati (guasti, riconsegne) dovrebbero essere mostrati solo se companyFeatures?.magazzino_assegnazioni è vero.
+
+
+L'intero modulo dovrebbe mostrare un messaggio di errore se l'utente non ha neanche magazzino_inventario abilitato.
+
+Questo blueprint definitivo è coerente con l'architettura monorepo, rispetta il sistema di licenza granulare che hai richiesto e implementa la nuova struttura UI per i materiali.

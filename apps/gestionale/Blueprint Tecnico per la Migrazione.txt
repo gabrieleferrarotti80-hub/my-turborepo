@@ -1,0 +1,218 @@
+Blueprint Tecnico per la Migrazione a Monorepo
+Obiettivo: Unificare i due progetti gestionale e app-esterna in un'unica codebase (monorepo) per massimizzare la condivisione di logica, componenti e tipi di dato, riducendo la duplicazione e semplificando la manutenzione.
+
+Strumento Scelto: Turborepo (leggero, veloce e ben integrato con l'ecosistema JavaScript/React).
+
+Fase 1: Preparazione dell'Ambiente
+Installazione di Turborepo:
+
+Aprire un terminale e installare Turborepo globalmente.
+
+Bash
+
+npm install turborepo -g
+Creazione del Progetto Monorepo:
+
+Creare una nuova cartella per il progetto unificato e navigarci dentro.
+
+Bash
+
+mkdir progetto-unificato
+cd progetto-unificato
+Inizializzazione del Progetto:
+
+Inizializzare un package.json alla radice.
+
+Bash
+
+npm init -y
+Aggiungere "workspaces" al package.json radice. Questo dice a NPM/Yarn/PNPM dove trovare i pacchetti del monorepo.
+
+JSON
+
+// package.json (radice)
+{
+  "name": "progetto-unificato",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build"
+  },
+  "devDependencies": {
+    "turbo": "latest"
+  }
+}
+Creare un file turbo.json di base alla radice.
+
+JSON
+
+// turbo.json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"]
+    }
+  }
+}
+Inizializzazione di Git:
+
+Bash
+
+git init
+Fase 2: Strutturazione e Migrazione dei File
+Creazione della Struttura a Pacchetti:
+
+Creare le directory apps e packages.
+
+Bash
+
+mkdir apps
+mkdir packages
+Spostamento delle Applicazioni Esistenti:
+
+Copiare l'intero contenuto del progetto gestionale in /apps/gestionale.
+
+Copiare l'intero contenuto del progetto app-esterna in /apps/app-esterna.
+
+Creazione dei Pacchetti Condivisi:
+
+Creare le cartelle per i pacchetti condivisi.
+
+Bash
+
+cd packages
+mkdir shared-core
+mkdir shared-ui
+cd ..
+Inizializzare un package.json per ogni pacchetto condiviso. Questo è fondamentale.
+
+Bash
+
+# Dentro /packages/shared-core
+npm init -y
+# Modificare il package.json generato in:
+# { "name": "shared-core", "version": "1.0.0", "main": "./index.js" }
+
+# Dentro /packages/shared-ui
+npm init -y
+# Modificare il package.json generato in:
+# { "name": "shared-ui", "version": "1.0.0", "main": "./index.js" }
+Migrazione del Codice Condiviso:
+
+Spostare la logica in shared-core:
+
+Spostare gestionale/src/data/schemas.js in packages/shared-core/schemas.js.
+
+Spostare gestionale/src/data/dataParsers.js in packages/shared-core/dataParsers.js.
+
+Spostare gestionale/src/data/dataValidators.js in packages/shared-core/dataValidators.js.
+
+Spostare gestionale/src/firebase/firebaseConfig.jsx in packages/shared-core/firebaseConfig.js.
+
+Creare packages/shared-core/hooks/ e spostare tutti i file use...Manager.jsx al suo interno.
+
+Spostare i componenti UI in shared-ui:
+
+Creare packages/shared-ui/components/ e spostare: Calendar.jsx, UserSelector.jsx, DettagliEventoModal.jsx, DettagliScadenzaModal.jsx, NotificationBell.jsx.
+
+Creare packages/shared-ui/forms/ e spostare: AggiungiEventoForm.jsx, AggiungiDocumentoForm.jsx.
+
+Creare packages/shared-ui/views/ e spostare: AgendaContent.jsx.
+
+Creare file index.js: Per ogni pacchetto, creare un file index.js che esporta tutto il contenuto, rendendolo importabile.
+
+Esempio per packages/shared-core/index.js:
+
+JavaScript
+
+export * from './schemas';
+export * from './dataParsers';
+// ... etc.
+Fase 3: Refactoring delle Applicazioni
+Aggiornamento delle Dipendenze:
+
+Modificare il package.json di apps/gestionale e apps/app-esterna per includere le dipendenze ai pacchetti locali.
+
+JSON
+
+// package.json di apps/gestionale (esempio)
+"dependencies": {
+  "react": "...",
+  "firebase": "...",
+  "shared-core": "workspace:*",
+  "shared-ui": "workspace:*"
+}
+Eseguire npm install dalla radice del monorepo per collegare i pacchetti.
+
+Aggiornamento dei Percorsi di Import:
+
+Questa è l'operazione più lunga. In entrambi i progetti (gestionale e app-esterna), cercare tutti gli import relativi ai file spostati e aggiornarli.
+
+Prima: import { useAgendaManager } from '../hooks/useAgendaManager';
+
+Dopo: import { useAgendaManager } from 'shared-core/hooks';
+
+Prima: import AgendaContent from './views/AgendaContent.jsx';
+
+Dopo: import { AgendaContent } from 'shared-ui/views';
+
+Refactoring dei File Specifici dell'App:
+
+apps/gestionale/src/context/'../context/shared-core/context/FirebaseContext.jsx'.jsx:
+
+Verificare che tutti gli import (parse..., schema...) puntino a shared-core.
+
+Mantenere la sua logica "pesante" che carica tutti i dati dell'azienda.
+
+apps/app-esterna/src/'../context/shared-core/context/FirebaseContext.jsx'.js:
+
+Eliminare useAuthentication.js: Spostare la sua logica onAuthStateChanged e di lettura del profilo utente direttamente dentro questo file.
+
+Verificare che tutti gli import (parse..., schema...) puntino a shared-core.
+
+Mantenere la sua logica "leggera" che carica solo i dati pertinenti all'utente (where("destinatarioId", "==", user.uid), etc.).
+
+apps/app-esterna/src/components/TecnicoMask.js:
+
+Verificare che importi AgendaContent da shared-ui.
+
+Rimuovere ogni logica di data-fetching residua, affidandosi solo a useFirebaseData() che ora proviene dal suo '../context/shared-core/context/FirebaseContext.jsx' locale.
+
+Fase 4: Test e Convalida
+Installazione Completa:
+
+Dalla radice del monorepo, lanciare npm install per installare tutte le dipendenze di tutti i pacchetti e le app.
+
+Avvio in Sviluppo:
+
+Dalla radice del monorepo, lanciare il comando dev definito nello script.
+
+Bash
+
+npm run dev
+# Oppure, se si usa turbo:
+# turbo dev
+Questo comando avvierà i server di sviluppo per entrambe le applicazioni contemporaneamente.
+
+Test Funzionale:
+
+Navigare su localhost per entrambe le applicazioni.
+
+Testare una funzionalità end-to-end che attraversa tutti gli strati condivisi, come l'aggiunta di un evento per un altro utente dal gestionale.
+
+Verifica: L'evento appare nell'agenda del gestionale. La notifica appare nella campanella del gestionale. L'evento appare nell'agenda dell'app esterna. La notifica appare nell'app esterna.
+
+Testare una funzionalità specifica dell'app esterna, come la creazione di un ReportTecnico, per assicurarsi che i componenti non condivisi funzionino ancora.
+
+Questo blueprint, se seguito attentamente, ti guiderà attraverso la transizione verso un'architettura unificata, scalabile e molto più semplice da mantenere.

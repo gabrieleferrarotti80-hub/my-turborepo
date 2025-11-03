@@ -1,0 +1,168 @@
+Blueprint Architetturale Definitivo del Progetto Gestionale
+Versione: 3.0 (Stabile)
+Data: 29 Settembre 2025
+Scopo: Fornire una documentazione architetturale dettagliata, fungendo da guida tecnica completa per lo sviluppo, la manutenzione e la ricostruzione del progetto.
+
+1. Filosofia e Principi Fondamentali
+L'architettura dell'applicazione si fonda su tre pilastri inviolabili, progettati per garantire scalabilità, manutenibilità e prevedibilità del codice. 
+
+
+
+
+
+
+Fonte Unica di Verità (SSoT - Single Source of Truth): Tutta la lettura dei dati da Firestore è delegata a un unico componente centrale: '../context/shared-core/context/FirebaseContext.jsx'.jsx.  Nessun altro componente esegue letture dirette dal database. Questo elimina la ridondanza, garantisce la coerenza dei dati in tutta l'app e semplifica la gestione dello stato. 
+
+
+
+
+Separazione delle Responsabilità (SoC - Separation of Concerns): La logica è rigorosamente separata dalla presentazione. 
+
+Strato Dati (schemas.js, dataParsers.js): Definisce la forma dei dati.
+
+
+Strato di Logica di Business (Custom Hooks use...Manager.jsx): Gestisce le operazioni di scrittura e modifica dei dati. 
+
+
+Strato di Presentazione (Componenti UI): Si occupa esclusivamente di visualizzare i dati e catturare l'input dell'utente. 
+
+
+Flusso Dati Unidirezionale: Il flusso dei dati segue un ciclo prevedibile che minimizza gli errori e semplifica il debug. 
+
+
+LETTURA: Firestore -> '../context/shared-core/context/FirebaseContext.jsx' -> dataParsers -> Stato Globale -> Componente UI.
+
+SCRITTURA: Componente UI -> Hook di Logica -> dataValidators -> Firestore -> (il ciclo di lettura si riattiva).
+
+2. Lo Strato Dati: La Fondazione del Progetto
+Questo strato è la "costituzione" dell'applicazione. Definisce la struttura, la validità e la coerenza di ogni dato. 
+
+2.1. firebaseConfig.jsx
+
+Responsabilità: Contiene esclusivamente le credenziali di connessione al progetto Firebase.  È il punto di partenza per tutte le interazioni con il backend.
+
+2.2. schemas.js
+
+Responsabilità: È la fonte unica di verità per la struttura dei dati. Definisce, tramite oggetti JavaScript, la forma esatta di ogni documento che risiede in Firestore, inclusi i valori di default. 
+
+
+
+Implementazione Dettagliata:
+
+companySchema: Definisce un'azienda con campi come name, companyName, partitaIva, etc.
+
+userSchema: Definisce un utente con nome, cognome, email, ruolo, companyID.
+
+clientSchema: Definisce un cliente, distinguendo tra Privato e Azienda.
+
+
+attrezzaturaSchema: Definisce un singolo asset fisico nel magazzino. 
+
+
+assegnazioneSchema: Definisce un'assegnazione di magazzino. 
+
+
+archivioAttrezzaturaSchema: Definisce lo storico di un asset. 
+
+
+cantiereSchema: Definisce un cantiere principale. 
+
+
+
+
+assegnazioneCantiereSchema: Definisce l'assegnazione di una squadra a un cantiere. 
+
+
+reportSchema: Per i report delle squadre dall'app esterna.
+
+reportTecnicoSchema: Per i report interni dei tecnici.
+
+formsSchema: Definisce la struttura di un modulo compilabile.
+
+aziendeFormSchema: Definisce le autorizzazioni di un modulo per le aziende.
+
+2.3. dataParsers.js
+
+Responsabilità: Funge da "traduttore" tra i dati grezzi di Firestore e gli oggetti JavaScript utilizzati dall'app. La sua funzione principale è 
+
+
+parseFromFirestore, che prende i dati grezzi e li unisce con uno schema di riferimento, garantendo che ogni oggetto abbia sempre tutte le proprietà attese e convertendo i Timestamp di Firebase in oggetti Date di JavaScript. 
+
+
+Implementazione: Contiene una funzione di parsing esportata per ogni schema definito in schemas.js (es. parseUser, parseCompany, parseCantiere, etc.). 
+
+2.4. dataValidators.js
+
+Responsabilità: È il "guardiano della qualità" per le operazioni di scrittura. Contiene funzioni pure che ricevono i dati da un form e lanciano un errore se non sono conformi alle regole di business (es. campi obbligatori, formato email valido). 
+
+
+
+
+
+2.5. permissions.js
+Responsabilità: Centralizza le regole di accesso alle viste. La funzione getPermissionsByRole(role) restituisce un array di "chiavi di vista" (es. 'dashboard', 'aziende') per un dato ruolo, permettendo alla UI di mostrare/nascondere dinamicamente i pulsanti di navigazione.
+
+3. Il Cuore dell'Applicazione: '../context/shared-core/context/FirebaseContext.jsx'.jsx
+Questo file è il componente più critico dell'intera architettura. 
+
+Responsabilità:
+
+Gestire l'Autenticazione: Tramite onAuthStateChanged, rileva lo stato di login dell'utente e carica il suo documento profilo dalla collezione users.
+
+Caricare Tutti i Dati: È l'unico componente che esegue query onSnapshot su Firestore. Ha un useEffect che, una volta autenticato l'utente, si sottoscrive in tempo reale a tutte le collezioni necessarie (companies, users, cantieri, reports, forms, etc.).
+
+Filtrare i Dati: Applica un filtro where('companyID', '==', userAziendaId) a tutte le query. Se l'utente è un proprietario e userAziendaId è null, il filtro viene rimosso, caricando i dati di tutte le aziende.
+
+Gestire la Selezione Azienda: Contiene la funzione handleCompanyChange, che viene chiamata dal AziendaSelector. Questa funzione aggiorna lo stato userAziendaId, innescando un ricaricamento filtrato di tutti i dati dell'applicazione.
+
+Fornire i Dati: Rende disponibili i dati puliti e lo stato di caricamento a tutta l'app tramite l'hook useFirebaseData().
+
+4. Lo Strato di Logica di Business: I Custom Hooks (use...Manager.jsx)
+Questi file sono i "cervelli" per le operazioni di scrittura. Incapsulano la logica complessa, lasciando i componenti UI puliti. 
+
+
+
+useCompaniesManager.jsx: Gestisce la creazione di nuove aziende e dei loro titolari in un'unica operazione.
+
+
+usePersonnelManager.jsx: Gestisce il ciclo di vita di un dipendente, dalla creazione in Firebase Authentication al salvataggio del documento in Firestore, inclusa la gestione di upload di file. 
+
+useFormAuthorizationManager.jsx: Contiene la logica per salvare le autorizzazioni dei form. La sua funzione updateAuthorizations scrive nella collezione aziendeForm, associando un ID di un modulo a un array di ID di aziende autorizzate.
+
+(E così via per tutti gli altri manager: useArticoliManager, useClientsManager, etc.)
+
+5. Lo Strato di Presentazione: Componenti e Flussi Utente
+I componenti UI sono "stupidi" per design: ricevono dati e funzioni, e li visualizzano.
+
+5.1. Flusso di Navigazione Principale
+App.jsx: Avvolge tutto nel FirebaseProvider.
+
+AppContent (interno ad App.jsx): Usa useFirebaseData() per decidere se mostrare AuthScreen.jsx o DashboardLayout.jsx.
+
+DashboardLayout.jsx: È l'orchestratore principale. La sua logica chiave è:
+
+Se activeView è 'admin-aziende', renderizza la vista di amministrazione a schermo intero.
+
+Altrimenti, renderizza la Sidebar e il MainContent.
+
+Sidebar.jsx: Mostra i pulsanti di navigazione. È "intelligente":
+
+Usa permissions.js per filtrare i pulsanti base.
+
+Aggiunge condizionalmente il pulsante "Aziende" e "Gestione Aziende" solo per il proprietario quando non ha un'azienda selezionata.
+
+MainContent.jsx: Funge da router per le viste principali, mostrando il componente corretto (CompaniesContent, PersonnelContent, etc.) in base allo stato activeView.
+
+5.2. Flusso di Amministrazione (Proprietario)
+Il proprietario clicca su "Gestione Aziende".
+
+DashboardLayout renderizza GestioneAziendeAdminView.jsx a schermo intero.
+
+Questo componente mostra una sua sidebar (GestioneAziendeSidebar.jsx) e il contenuto.
+
+Cliccando su "Autorizzazioni Form", viene mostrato AutorizzazioniFormView.jsx.
+
+AutorizzazioniFormView mostra una tabella con la lista di moduli dalla collezione forms. Al click su "Gestisci":
+
+Mostra AuthorizeFormView.jsx, che presenta la lista di tutte le companies con delle checkbox, pre-selezionando quelle già autorizzate leggendo dalla collezione aziendeForm.
+

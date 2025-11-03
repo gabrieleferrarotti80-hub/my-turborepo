@@ -1,0 +1,88 @@
+Blueprint Architetturale per AI - Modulo Gestione Operativa
+Versione: 2.0 (Revisionata)
+Scopo: Questo documento descrive l'architettura di riferimento e il piano di refactoring per il modulo "Gestione Operativa". L'obiettivo è allineare l'intera sezione ai principi di Fonte Unica di Verità (SSoT) e Separazione delle Responsabilità (SoC) già adottati nel resto dell'applicazione.
+
+1. Sommario e Principi Guida
+Il modulo "Gestione Operativa" è il cuore funzionale dell'applicazione per le attività sul campo. Le sue responsabilità includono la gestione dei cantieri (e sub-cantieri), l'assegnazione di personale e mezzi, e la compilazione di rapportini giornalieri.
+
+Il refactoring seguirà i nostri tre principi cardine:
+
+Fonte Unica di Verità (SSoT): Tutte le letture di dati da Firestore verranno centralizzate in '../context/shared-core/context/FirebaseContext.jsx'.jsx. I componenti non caricheranno mai più i dati in autonomia.
+
+Separazione delle Responsabilità (SoC): La logica di scrittura (creazione/modifica) sarà astratta in hook specializzati (useCantieriManager.jsx, ecc.), mentre i componenti UI (...View.jsx, ...Form.jsx) si occuperanno solo della presentazione.
+
+Flusso Dati Unidirezionale: L'utente interagisce con la UI -> la UI chiama una funzione da un hook di logica -> l'hook modifica i dati su Firestore -> '../context/shared-core/context/FirebaseContext.jsx' rileva il cambiamento -> la UI si aggiorna.
+
+2. Modello Dati Dettagliato (Firestore)
+Per garantire coerenza, il sistema si baserà sulle seguenti collezioni:
+
+cantieri: Collezione di primo livello. Ogni documento rappresenta un cantiere principale e contiene dati anagrafici (nome, cliente, indirizzo, coordinate).
+
+Sottocollezione subcantieri: Nidificata all'interno di un documento cantiere. Ogni documento rappresenta una fase o un'area di lavoro specifica, ereditando il contesto del genitore.
+
+assegnazioniCantieri: Collezione di primo livello. Ogni documento è un "foglio di marcia" che lega una squadra (preposto, operai), dei mezzi e un cantiere per un dato periodo.
+
+rapportinoTemplates: Contiene i modelli PDF e i metadati dei campi per i rapportini.
+
+rapportiniCompilati: Contiene le istanze dei rapportini compilati dagli utenti, con i valori inseriti.
+
+3. Piano di Refactoring Dettagliato
+Il piano d'azione è suddiviso in tre fasi sequenziali.
+
+Fase 1: Estendere la Fondazione (Dati e Contesto)
+Questo è il passo più importante.
+
+Definire gli Schemi (schemas.js): Aggiungeremo gli schemi per cantiereSchema, subcantiereSchema e assegnazioneCantiereSchema.
+
+Creare i Parser (dataParsers.js): Implementeremo le funzioni di parsing (parseCantiere, ecc.) per pulire i dati in lettura.
+
+Potenziare il '../context/shared-core/context/FirebaseContext.jsx'.jsx: Questo è il passo cruciale. Modificheremo il contesto per fargli caricare in tempo reale le collezioni cantieri e assegnazioniCantieri, rendendole disponibili a livello globale. Nota: i subcantieri verranno caricati on-demand nella vista di dettaglio per ottimizzare le performance.
+
+Fase 2: Creare i "Cervelli" (Hook di Logica)
+Astraiamo tutta la logica di scrittura in hook specializzati.
+
+useCantieriManager.jsx: Conterrà la logica per:
+
+addCantiere: Sostituirà la logica di AggiungiCantiereForm.jsx.
+
+addSubcantiere: Sostituirà la logica di AggiungiSubcantiereForm.jsx.
+
+updateStatoSubcantiere: Gestirà il cambio di stato di un sub-cantiere.
+
+useAssegnazioniCantieriManager.jsx: Sarà il cervello per le assegnazioni ai cantieri.
+
+createAssegnazioneCantiere: Sostituirà tutta la logica legacy presente in AssegnaCantiereForm.jsx, eliminando la reinizializzazione di Firebase.
+
+Fase 3: Allineare l'Interfaccia Utente
+"Svuotiamo" i componenti UI dalla logica e li colleghiamo ai nuovi sistemi.
+
+Refactoring dei Form:
+
+AssegnaCantiereForm.jsx: Verrà riscritto completamente per essere un componente di presentazione "puro". Non caricherà più dati, ma li riceverà come props (cantieri, personnel, automezzi) dal suo orchestratore. Al salvataggio, chiamerà createAssegnazioneCantiere dal nuovo hook.
+
+AggiungiCantiereForm.jsx e AggiungiSubcantiereForm.jsx: Verranno semplificati. La logica di salvataggio sarà spostata nei rispettivi manager hooks.
+
+Refactoring delle Viste/Orchestratori:
+
+CantiereDashboard.jsx: Funge da orchestratore per la gestione dei cantieri. Continuerà a gestire le viste interne (list, details, add), ma attingerà i dati (cantieri) direttamente dal '../context/shared-core/context/FirebaseContext.jsx'.
+
+DettagliCantiereView.jsx: Smetterà di caricare i dati del cantiere e dei sub-cantieri tramite onSnapshot e li riceverà come props, filtrati dal '../context/shared-core/context/FirebaseContext.jsx' e dal suo genitore (CantiereDashboard).
+
+4. Flusso di Lavoro Esemplificativo: Creazione di un Cantiere
+L'utente, nella CantiereDashboard, clicca "Aggiungi Cantiere".
+
+CantiereDashboard cambia la sua vista interna e renderizza <AggiungiCantiereForm />.
+
+L'utente compila il form. L'input dell'indirizzo utilizza l'API di Google Maps per l'autocomplete e la geolocalizzazione.
+
+L'utente clicca "Salva".
+
+Il form AggiungiCantiereForm invoca la funzione addCantiere dall'hook useCantieriManager.
+
+useCantieriManager valida i dati e scrive il nuovo documento nella collezione cantieri.
+
+Il '../context/shared-core/context/FirebaseContext.jsx', che è in ascolto sulla collezione cantieri, riceve i nuovi dati in tempo reale.
+
+Il contesto aggiorna il suo stato globale.
+
+CantiereDashboard, che consuma i dati dal contesto, si ri-renderizza, mostrando il nuovo cantiere nella lista.
