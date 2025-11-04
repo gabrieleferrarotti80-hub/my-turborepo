@@ -4,6 +4,13 @@
     {
       "src": "apps/gestionale/src/backend/server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "apps/gestionale/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
   ],
   "routes": [
