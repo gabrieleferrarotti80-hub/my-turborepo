@@ -1,10 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
-  "pipeline": {
+  "pipeline": { 
     "build": {
       "dependsOn": ["^build"],
-      // --- ❗ ASSICURATI CHE QUESTA RIGA CI SIA ---
       "outputs": ["dist/**", ".next/**"] 
     },
     "lint": {
