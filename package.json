@@ -3,7 +3,7 @@
 {
   "name": "my-turborepo",
   "private": true,
-  "packageManager": "pnpm@9.4.0",
+  "packageManager": "pnpm@10.x",
  "scripts": {
   "build": "turbo run build",
   "dev": "turbo run dev",
