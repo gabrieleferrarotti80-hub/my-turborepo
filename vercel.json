@@ -7,10 +7,11 @@
       "use": "@vercel/node"
     },
     {
-      "src": "apps/gestionale/package.json",
+      "src": "package.json", 
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "apps/gestionale/dist", 
+        "buildCommand": "turbo run build --filter=gestionale-vite"
       }
     }
   ],
