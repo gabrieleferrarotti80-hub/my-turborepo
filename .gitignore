@@ -40,4 +40,5 @@ yarn-error.log*
 
 google-vision-key.json
 firebase-serviceAccountKey.json
-scripts/serviceAccountKey.json"pnpm-lock.yaml" 
+scripts/serviceAccountKey.json
+
