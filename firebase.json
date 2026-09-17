@@ -1,10 +1,22 @@
 {
-  "functions": {
-    "source": "functions"
-  },
+  "functions": [
+    {
+      "source": "gestionale",
+      "codebase": "gestionale",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" install"
+      ]
+    }
+  ],
   "hosting": [
     {
-      "target": "gestionale",
+      "site": "gestione-cantieri-cloud",
       "public": "apps/gestionale/dist",
       "ignore": [
         "firebase.json",
@@ -13,13 +25,41 @@
       ],
       "rewrites": [
         {
+          "source": "/api/**",
+          "function": {
+            "functionId": "api",
+            "codebase": "gestionale"
+          }
+        },
+        {
+          "source": "/createUserAndCompany",
+          "function": {
+            "functionId": "api",
+            "codebase": "gestionale"
+          }
+        },
+        {
+          "source": "/createEmployee",
+          "function": {
+            "functionId": "api",
+            "codebase": "gestionale"
+          }
+        },
+        {
+          "source": "/importEmployeesBatch",
+          "function": {
+            "functionId": "api",
+            "codebase": "gestionale"
+          }
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
       ]
     },
     {
-      "target": "app-esterna",
+      "site": "app-operativa",
       "public": "apps/app-esterna/dist",
       "ignore": [
         "firebase.json",

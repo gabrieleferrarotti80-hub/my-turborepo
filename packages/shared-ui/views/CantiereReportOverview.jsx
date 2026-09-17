@@ -1,10 +1,9 @@
 import React from 'react';
-import { EyeIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon } from '@heroicons/react/24/solid'; // Icona freccia per indicare navigazione
 
 /**
- * Componente "stupido" per visualizzare la tabella riepilogativa dei report dei cantieri.
- * @param {Array} reports - L'array di report generato da useCantiereReportGenerator.
- * @param {Function} onSelectCantiere - La funzione da chiamare quando si clicca su "Vedi Dettagli".
+ * Componente per visualizzare la tabella riepilogativa dei report dei cantieri.
+ * MODIFICA: Ora l'intera riga è cliccabile per vedere i dettagli.
  */
 export const CantiereReportOverview = ({ reports, onSelectCantiere }) => {
 
@@ -32,34 +31,57 @@ export const CantiereReportOverview = ({ reports, onSelectCantiere }) => {
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantiere</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Inizio</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Fine</th>
-                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Giorni Lavorati</th>
-                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Personale Impiegato</th>
-                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ispezioni</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Cantiere</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Data Inizio</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Data Fine</th>
+                        <th scope="col" className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Giorni</th>
+                        <th scope="col" className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Personale</th>
+                        <th scope="col" className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Ispezioni</th>
+                        {/* Colonna vuota per la freccina */}
                         <th scope="col" className="relative px-6 py-3">
-                            <span className="sr-only">Dettagli</span>
+                            <span className="sr-only">Vedi</span>
                         </th>
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                     {reports.map((report) => (
-                        <tr key={report.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{report.nomeCantiere}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(report.dataInizio)}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.dataFine ? formatDate(report.dataFine) : <span className="text-green-600 font-semibold">In corso</span>}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{report.totaleGiorniLavorati}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{report.totaleUomini}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{report.totaleIspezioni}</td>
+                        <tr 
+                            key={report.id} 
+                            onClick={() => onSelectCantiere(report)}
+                            className="group hover:bg-indigo-50 cursor-pointer transition-colors duration-200"
+                        >
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                                {report.nomeCantiere}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {formatDate(report.dataInizio)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {report.dataFine ? (
+                                    formatDate(report.dataFine)
+                                ) : (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        In corso
+                                    </span>
+                                )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium">
+                                {report.totaleGiorniLavorati}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium">
+                                {report.totaleUomini}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                {report.totaleIspezioni > 0 ? (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {report.totaleIspezioni}
+                                    </span>
+                                ) : (
+                                    <span className="text-gray-400 text-sm">-</span>
+                                )}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button
-                                    onClick={() => onSelectCantiere(report)}
-                                    className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"
-                                >
-                                    <EyeIcon className="h-4 w-4" />
-                                    Dettagli
-                                </button>
+                                <ChevronRightIcon className="h-5 w-5 text-gray-300 group-hover:text-indigo-600 transition-colors" />
                             </td>
                         </tr>
                     ))}

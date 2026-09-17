@@ -3,43 +3,63 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 
 // Import per Firebase Admin
 import admin from 'firebase-admin';
 // Import per Google Cloud Vision
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 
-// --- CONFIGURAZIONE ---
-
-// Chiave per Firebase Admin SDK
-import firebaseServiceAccount from '../../../../firebase-serviceAccountKey.json' with { type: 'json' };
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const visionKeyPath = path.join(__dirname, 'google-vision-key.json');
-const visionKey = JSON.parse(readFileSync(visionKeyPath));
+
+// --- 1. GESTIONE CREDENZIALI FIREBASE ---
+let firebaseServiceAccount;
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    // In produzione (Render): legge dalla Variabile d'Ambiente
+    firebaseServiceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} else {
+    // In locale: legge dal file fisico
+    const fbKeyPath = path.join(__dirname, '../../../../firebase-serviceAccountKey.json');
+    firebaseServiceAccount = JSON.parse(readFileSync(fbKeyPath, 'utf8'));
+}
 
 // Inizializzazione di Firebase
 admin.initializeApp({
   credential: admin.credential.cert(firebaseServiceAccount)
 });
 
+// --- 2. GESTIONE CREDENZIALI GOOGLE VISION ---
+let visionKey;
+if (process.env.GOOGLE_VISION_KEY) {
+    // In produzione (Render): legge dalla Variabile d'Ambiente
+    visionKey = JSON.parse(process.env.GOOGLE_VISION_KEY);
+} else {
+    // In locale: legge dal file fisico
+    const visionKeyPath = path.join(__dirname, 'google-vision-key.json');
+    if (existsSync(visionKeyPath)) {
+        visionKey = JSON.parse(readFileSync(visionKeyPath, 'utf8'));
+    }
+}
+
 const visionClient = new ImageAnnotatorClient({
   credentials: {
-    client_email: visionKey.client_email,
-    private_key: visionKey.private_key,
+    client_email: visionKey?.client_email,
+    // Sostituisce i newline testuali in veri accapo (cruciale per le variabili d'ambiente)
+    private_key: visionKey?.private_key?.replace(/\\n/g, '\n'), 
   }
 });
 
 const db = admin.firestore();
 const auth = admin.auth();
 const app = express();
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// ... QUI SOTTO LASCIA TUTTI I TUOI ENDPOINT INVARIATI (app.post('/createUserAndCompany', ecc...)) ...
 
 // ======================================================
 //  ENDPOINT

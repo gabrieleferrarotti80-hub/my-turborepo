@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 
-// Formattatore orario (INVARIATO)
 const formatTime = (ts) => {
     if (!ts) return 'N/D';
     return ts.toDate().toLocaleString('it-IT', { 
@@ -10,7 +9,6 @@ const formatTime = (ts) => {
     });
 };
 
-// Formattatore data (INVARIATO)
 const formatDate = (ts) => {
     if (!ts) return 'N/D';
     return ts.toDate().toLocaleDateString('it-IT', { 
@@ -20,26 +18,20 @@ const formatDate = (ts) => {
     });
 };
 
-// --- ❗ COMPONENTE ErroreFormInline MODIFICATO ---
-// Usiamo STILI INLINE per i colori di sfondo.
-// Questo bypassa il bug del JIT e il CSS globale.
-// ---
 const ErroreFormInline = ({ riga, onSubmit, onCancel, isSaving }) => {
     const [nota, setNota] = useState('');
 
-    // 1. Calcoliamo gli stati disabilitati
     const isSubmitDisabled = isSaving || !nota.trim();
     const isCancelDisabled = isSaving;
 
-    // 2. Definiamo gli stili inline
     const cancelStyle = {
-        backgroundColor: isCancelDisabled ? '#9CA3AF' : '#E5E7EB', // Grigio-400 / Grigio-200
+        backgroundColor: isCancelDisabled ? '#9CA3AF' : '#E5E7EB',
         color: isCancelDisabled ? 'white' : 'black',
         cursor: isCancelDisabled ? 'not-allowed' : 'pointer'
     };
     
     const submitStyle = {
-        backgroundColor: isSubmitDisabled ? '#9CA3AF' : '#DC2626', // Grigio-400 / Rosso-600
+        backgroundColor: isSubmitDisabled ? '#9CA3AF' : '#DC2626',
         color: 'white',
         cursor: isSubmitDisabled ? 'not-allowed' : 'pointer'
     };
@@ -48,79 +40,45 @@ const ErroreFormInline = ({ riga, onSubmit, onCancel, isSaving }) => {
         <div className="p-4 bg-gray-50"> 
             <h4 className="font-semibold text-sm mb-2">Segnala Errore per: {riga.giorno}</h4>
             <textarea 
-                className="w-full p-2 border rounded text-sm" 
+                className="w-full p-2 border rounded text-sm outline-none focus:ring-2 focus:ring-red-500" 
                 rows="3"
                 value={nota}
                 onChange={e => setNota(e.target.value)}
-                placeholder="Descrivi l'errore (es. 'Ho finito alle 17:00')..."
+                placeholder="Descrivi l'errore (es. 'Ho dimenticato di chiudere, ho finito alle 17:00')..."
             ></textarea>
             
-            {/* Footer Pulsanti */}
             <div className="mt-3 grid grid-cols-2 gap-3">
-
-                {/* --- Pulsante Annulla (con stile inline) --- */}
-                {/* Usiamo un <div> per evitare il CSS globale :disabled */}
-                <div 
-                    onClick={() => {
-                        if (isCancelDisabled) return;
-                        onCancel();
-                    }}
-                    // Usiamo 'style' invece di 'className' per i colori
-                    style={cancelStyle}
-                    // Le classi di layout/testo di Tailwind funzionano
-                    className="px-4 py-2 rounded w-full text-center text-sm"
-                >
+                <div onClick={() => { if (!isCancelDisabled) onCancel(); }} style={cancelStyle} className="px-4 py-2 rounded w-full text-center text-sm font-bold">
                     Annulla
                 </div>
-                
-                {/* --- Pulsante Invia (con stile inline) --- */}
-                {/* Usiamo un <div> per evitare il CSS globale :disabled */}
-                <div 
-                    onClick={() => {
-                        if (isSubmitDisabled) return;
-                        onSubmit(nota);
-                    }}
-                    // Usiamo 'style' invece di 'className' per i colori
-                    style={submitStyle}
-                    // Le classi di layout/testo di Tailwind funzionano
-                    className="px-4 py-2 rounded w-full text-center text-sm"
-                >
-                    {isSaving ? 'Invio...' : 'Invia'}
+                <div onClick={() => { if (!isSubmitDisabled) onSubmit(nota); }} style={submitStyle} className="px-4 py-2 rounded w-full text-center text-sm font-bold">
+                    {isSaving ? 'Invio in corso...' : 'Invia Segnalazione'}
                 </div>
             </div>
         </div>
     );
 };
 
-
-// --- ❗ COMPONENTE PRINCIPALE (INVARIATO) ---
-// (L'architettura "Inline" è INVARIATA)
-// ---
 export const PresenzeViewerModal = ({ isOpen, onClose, presenze = [], onSegnalaErrore, isSaving }) => {
     
     const [rigaInSegnalazione, setRigaInSegnalazione] = useState(null); 
 
-    // Logica useMemo (INVARIATA)
     const righeTabella = useMemo(() => {
         const giorniMap = new Map();
+        
         presenze.forEach(timbro => {
-            // --- ❗ SOLUZIONE: AGGIUNGI QUESTO CONTROLLO ---
-            // Se il timestampInizio non è ancora stato valorizzato
-            // dal server, salta questo ciclo.
-            if (!timbro.timestampInizio) {
-                console.warn("Timbro saltato (timestampInizio non ancora pronto):", timbro.id);
-                return; 
-            }
-            // --- FINE SOLUZIONE ---
+            if (!timbro.timestampInizio) return; 
             const giornoKey = timbro.timestampInizio.toDate().toLocaleDateString('it-IT');
             if (!giorniMap.has(giornoKey)) {
                 giorniMap.set(giornoKey, { data: timbro.timestampInizio, eventi: [] });
             }
             giorniMap.get(giornoKey).eventi.push(timbro);
         });
+
         const righe = [];
         for (const [giorno, { data, eventi }] of giorniMap.entries()) {
             const eventoAnomalo = eventi.find(e => e.stato !== 'lavoro');
+            
             if (eventoAnomalo) {
                 const stato = eventoAnomalo.stato;
                 righe.push({
@@ -128,122 +86,116 @@ export const PresenzeViewerModal = ({ isOpen, onClose, presenze = [], onSegnalaE
                     giorno: formatDate(data),
                     inizio: '-',
                     fine: '-',
-                    totale: stato.charAt(0).toUpperCase() + stato.slice(1) 
+                    totale: stato.charAt(0).toUpperCase() + stato.slice(1),
+                    data: data 
                 });
             } else {
-                const inizio = eventi[eventi.length - 1].timestampInizio;
-                const fine = eventi[0].timestampFine; 
-                let totaleOre = 'N/D';
-                if (inizio && fine) {
-                    const millisecondiLavorati = fine.toDate().getTime() - inizio.toDate().getTime();
-                    const oreLavorate = millisecondiLavorati / (1000 * 60 * 60); 
-                    const orePausa = 1.0;
-                    const oreNette = Math.max(0, oreLavorate - orePausa);
-                    totaleOre = oreNette.toFixed(2) + ' ore';
-                } else if (inizio && !fine) {
-                    totaleOre = 'In corso...';
+                // 🌟 FIX TIMBRATURE MULTIPLE: Ordina cronologicamente le timbrature della giornata
+                const eventiOrdinati = [...eventi].sort((a,b) => a.timestampInizio.toDate() - b.timestampInizio.toDate());
+                
+                const inizio = eventiOrdinati[0].timestampInizio;
+                let fine = eventiOrdinati[eventiOrdinati.length - 1].timestampFine; 
+                
+                let totaleOreLavorate = 0;
+                let isInCorso = false;
+
+                // 🌟 Calcolo esatto sommando i singoli intervalli (senza togliere la pausa a caso)
+                for(const ev of eventiOrdinati) {
+                    if(ev.timestampInizio && ev.timestampFine) {
+                        const ms = ev.timestampFine.toDate().getTime() - ev.timestampInizio.toDate().getTime();
+                        totaleOreLavorate += (ms / (1000 * 60 * 60));
+                    } else {
+                        isInCorso = true;
+                    }
                 }
+
+                let totaleOreTxt = 'N/D';
+                if (isInCorso) {
+                    totaleOreTxt = 'In corso...';
+                    fine = null; 
+                } else if (totaleOreLavorate > 0) {
+                    totaleOreTxt = totaleOreLavorate.toFixed(2) + ' ore';
+                }
+
                 righe.push({
                     id: giorno,
                     giorno: formatDate(data),
                     inizio: formatTime(inizio),
                     fine: formatTime(fine),
-                    totale: totaleOre,
-                    data: data //
+                    totale: totaleOreTxt,
+                    data: data
                 });
             }
         }
-        return righe;
+        
+        // Ordina dalla più recente alla più vecchia
+        return righe.sort((a, b) => b.data.toDate() - a.data.toDate()); 
     }, [presenze]);
-
 
     if (!isOpen) return null;
 
-    // Handler Segnalazione (MODIFICATO)
     const handleSegnalazione = async (nota) => {
         if (!rigaInSegnalazione) return;
-        const notaCompleta = `Giorno: ${rigaInSegnalazione.giorno} (Inizio: ${rigaInSegnalazione.inizio}, Fine: ${rigaInSegnalazione.fine}) - Errore segnalato: ${nota}`;
+        const notaCompleta = `Giorno: ${rigaInSegnalazione.giorno} (Inizio: ${rigaInSegnalazione.inizio}, Fine: ${rigaInSegnalazione.fine}) - Errore: ${nota}`;
         
-        // ❗ Passa la 'data' della riga (che è il timestampInizio)
         const result = await onSegnalaErrore(notaCompleta, rigaInSegnalazione.data); 
-        
-        if (result.success) {
-            setRigaInSegnalazione(null); 
-        } else {
-            alert(result.message); 
-        }
+        if (result.success) setRigaInSegnalazione(null); 
+        else alert(result.message); 
     };
-    // Gestisce "Apri/Chiudi" del form inline (INVARIATO)
+
     const handleToggleRiga = (riga) => {
-        if (rigaInSegnalazione && rigaInSegnalazione.id === riga.id) {
-            setRigaInSegnalazione(null);
-        } else {
-            setRigaInSegnalazione(riga);
-        }
+        if (rigaInSegnalazione && rigaInSegnalazione.id === riga.id) setRigaInSegnalazione(null);
+        else setRigaInSegnalazione(riga);
     };
 
     return (
-        // (1) Overlay (INVARIATO)
-        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
-            
-            {/* (2) Contenitore del Modal (INVARIATO) */}
-            <div className="bg-white rounded-lg w-full max-w-md h-[70dvh] flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-70 z-[9999] flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-white rounded-2xl w-full max-w-md h-[75dvh] flex flex-col shadow-2xl overflow-hidden">
                 
-                {/* (3) Header Principale (INVARIATO) */}
-                <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
-                    <h3 className="text-xl font-bold">Le tue Presenze</h3>
-                    <button onClick={onClose}>
-                        <XMarkIcon className="h-6 w-6" />
+                <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50 flex-shrink-0">
+                    <h3 className="text-xl font-black text-gray-800">Storico Timbrature</h3>
+                    <button onClick={onClose} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100">
+                        <XMarkIcon className="h-5 w-5 text-gray-600" />
                     </button>
                 </div>
 
-                {/* --- (4) CORPO TABELLA (INVARIATO) --- */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto bg-white custom-scrollbar">
                     {presenze.length === 0 ? (
-                        <p className="text-gray-500 p-4">Nessuna presenza registrata.</p>
+                        <p className="text-gray-400 p-8 text-center italic">Nessuna presenza registrata finora.</p>
                     ) : (
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0">
+                            <thead className="text-xs text-gray-500 uppercase bg-gray-50 sticky top-0 border-b border-gray-200 z-10">
                                 <tr>
-                                    <th scope="col" className="py-3 px-4">Giorno</th>
-                                    <th scope="col" className="py-3 px-2">Inizio</th>
-                                    <th scope="col" className="py-3 px-2">Fine</th>
-                                    <th scope="col" className="py-3 px-2">Totale</th>
-                                    <th scope="col" className="py-3 px-2 text-center">Azione</th>
+                                    <th scope="col" className="py-3 px-4 font-black">Giorno</th>
+                                    <th scope="col" className="py-3 px-2 font-black">Inizio</th>
+                                    <th scope="col" className="py-3 px-2 font-black">Fine</th>
+                                    <th scope="col" className="py-3 px-2 font-black">Totale</th>
+                                    <th scope="col" className="py-3 px-2 text-center font-black">Err.</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {righeTabella.map(riga => (
                                     <React.Fragment key={riga.id}>
-                                        
-                                        {/* --- La Riga Dati (INVARIATA) --- */}
-                                        <tr className="bg-white border-b hover:bg-gray-50">
-                                            <td className="py-3 px-4 font-medium">{riga.giorno}</td>
-                                            <td className="py-3 px-2">{riga.inizio}</td>
-                                            <td className="py-3 px-2">{riga.fine}</td>
-                                            <td className={`py-3 px-2 font-medium ${riga.totale.includes('ore') ? '' : 'text-red-600'}`}>
+                                        <tr className="bg-white border-b border-gray-50 hover:bg-indigo-50/50 transition-colors">
+                                            <td className="py-3 px-4 font-bold text-gray-800">{riga.giorno}</td>
+                                            <td className="py-3 px-2 text-gray-600 font-medium">{riga.inizio}</td>
+                                            <td className="py-3 px-2 text-gray-600 font-medium">{riga.fine}</td>
+                                            <td className={`py-3 px-2 font-bold ${riga.totale.includes('ore') ? 'text-indigo-600' : (riga.totale === 'In corso...' ? 'text-green-600 animate-pulse' : 'text-gray-500')}`}>
                                                 {riga.totale}
                                             </td>
                                             <td className="py-3 px-2 text-center">
                                                 <button 
                                                     title="Segnala un errore per questo giorno"
                                                     onClick={() => handleToggleRiga(riga)} 
-                                                    className={`
-                                                        p-1 rounded-full
-                                                        ${rigaInSegnalazione?.id === riga.id 
-                                                            ? 'bg-red-100 text-red-700' 
-                                                            : 'text-red-500 hover:text-red-700 hover:bg-red-50'}
-                                                    `}
+                                                    className={`p-2 rounded-xl transition-colors ${rigaInSegnalazione?.id === riga.id ? 'bg-red-500 text-white' : 'text-red-500 bg-red-50 hover:bg-red-100'}`}
                                                     disabled={isSaving}
                                                 >
                                                     <ExclamationTriangleIcon className="h-5 w-5" />
                                                 </button>
                                             </td>
                                         </tr>
-
-                                        {/* --- La Riga Form (Condizionale) (INVARIATA) --- */}
                                         {rigaInSegnalazione && rigaInSegnalazione.id === riga.id && (
-                                            <tr className="border-b">
+                                            <tr className="border-b-2 border-red-200 bg-red-50/20">
                                                 <td colSpan="5" className="p-0"> 
                                                     <ErroreFormInline 
                                                         riga={rigaInSegnalazione}
@@ -254,17 +206,11 @@ export const PresenzeViewerModal = ({ isOpen, onClose, presenze = [], onSegnalaE
                                                 </td>
                                             </tr>
                                         )}
-
                                     </React.Fragment>
                                 ))}
                             </tbody>
                         </table>
                     )}
-                </div>
-
-                {/* (5) Footer (INVARIATO) */}
-                <div className="p-4 border-t bg-gray-50 flex-shrink-0">
-                    <p className="text-xs text-gray-500 text-center">Fai clic sull'icona ❗ per segnalare un errore.</p>
                 </div>
             </div>
         </div>

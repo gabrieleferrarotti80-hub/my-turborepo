@@ -1,0 +1,1443 @@
+
+####################################################
+📦 AREA: PACKAGES/SHARED-CORE
+####################################################
+
+📄 FILE: FirebaseContext.jsx
+   📍 Percorso: packages\shared-core\context\FirebaseContext.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FirebaseProvider, const handleCompanyChange, const unsubscribeAuth, const unsubscribe, const activeSubscriptions
+   🔗 COLLEGAMENTI: Usa -> [ firebaseConfig, auth, firestore, dataParsers ]
+   ------------------------------------------------
+
+📄 FILE: dataParsers.js
+   📍 Percorso: packages\shared-core\data\dataParsers.js
+   ⚙️ FUNZIONI/COMPONENTI: formatForFirestore, parseCompany, parseUser, parseClient, parseAttrezzatura
+   ------------------------------------------------
+
+📄 FILE: dataValidators.js
+   📍 Percorso: packages\shared-core\data\dataValidators.js
+   ⚙️ FUNZIONI/COMPONENTI: validateCompanyAndOwnerCreation, validateCompanySchema, validateUserFormSchema, validateClientSchema, validateAttrezzaturaSchema
+   🔗 COLLEGAMENTI: Usa -> [ schemas.js ]
+   ------------------------------------------------
+
+📄 FILE: features.js
+   📍 Percorso: packages\shared-core\data\features.js
+   ⚙️ FUNZIONI/COMPONENTI: ALL_FEATURES
+   ------------------------------------------------
+
+📄 FILE: permissions.js
+   📍 Percorso: packages\shared-core\data\permissions.js
+   ⚙️ FUNZIONI/COMPONENTI: getPermissionsByRole
+   ------------------------------------------------
+
+📄 FILE: schemas.js
+   📍 Percorso: packages\shared-core\data\schemas.js
+   ⚙️ FUNZIONI/COMPONENTI: offertaSchema, companySchema, clientSchema, attrezzaturaSchema, assegnazioneSchema
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: firebaseConfig.js
+   📍 Percorso: packages\shared-core\firebaseConfig.js
+   🔗 COLLEGAMENTI: Usa -> [ app, auth, firestore, storage ]
+   ------------------------------------------------
+
+📄 FILE: useAgendaAction.jsx
+   📍 Percorso: packages\shared-core\hooks\useAgendaAction.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const getUserId, const aggiornaStatoEvento, const confermaEvento, const rifiutaEvento, const addEvento, useAgendaActionx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, schemas.js ]
+   ------------------------------------------------
+
+📄 FILE: useAgendaManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useAgendaManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const filteredEvents, const isForCurrentUser, const eventiFiltratiFinali, const daysInMonth, const handleDayClick, useAgendaManagerx
+   🔗 COLLEGAMENTI: Usa -> [ useAgendaAction.jsx, useOfferteManager.jsx ]
+   ------------------------------------------------
+
+📄 FILE: useAgendaViewController.js
+   📍 Percorso: packages\shared-core\hooks\useAgendaViewController.js
+   ⚙️ FUNZIONI/COMPONENTI: const handleNextMonth, const handlePrevMonth, const viewData, useAgendaViewController
+   ------------------------------------------------
+
+📄 FILE: useAnalisiCommessaManager.js
+   📍 Percorso: packages\shared-core\hooks\useAnalisiCommessaManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const isInRange, const calcolaKPI, const calcolaBudgetDaOfferta, const cantiere, const offerta, useAnalisiCommessaManager
+   ------------------------------------------------
+
+📄 FILE: useAnalisiFormLogic.js
+   📍 Percorso: packages\shared-core\hooks\useAnalisiFormLogic.js
+   ⚙️ FUNZIONI/COMPONENTI: const formatDateForInput, const pad, const datiAnalisi, const salvatiMap, const handleChange, useAnalisiFormLogic
+   ------------------------------------------------
+
+📄 FILE: useArticoliManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useArticoliManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const addArticolo, const updateArticolo, const deleteArticolo, useArticoliManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, storage, dataValidators.js ]
+   ------------------------------------------------
+
+📄 FILE: useAssegnazioneManager.js
+   📍 Percorso: packages\shared-core\hooks\useAssegnazioneManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const cantieriMap, const inviaAssegnazione, useAssegnazioneManager
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useAssegnazioniCantiereManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useAssegnazioniCantiereManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const cantieriMap, const subcantieriMap, const usersMap, const buildTeamObject, const createAssegnazioneCantiere, useAssegnazioniCantiereManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, schemas.js ]
+   ------------------------------------------------
+
+📄 FILE: useAssegnazioniManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useAssegnazioniManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const confermaPresaInCarico, const richiediRestituzione, const segnalaGuasto, const accettaSegnalazione, const risolviRiparazione, useAssegnazioniManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useAttrezzaturaManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useAttrezzaturaManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const updateAttrezzatura, useAttrezzaturaManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, dataParsers.js, schemas.js ]
+   ------------------------------------------------
+
+📄 FILE: useAuthentication.js
+   📍 Percorso: packages\shared-core\hooks\useAuthentication.js
+   ⚙️ FUNZIONI/COMPONENTI: const handleLogout, const unsubscribe, const fetchUserData, useAuthentication
+   🔗 COLLEGAMENTI: Usa -> [ auth, firestore, FirebaseContext ]
+   ------------------------------------------------
+
+📄 FILE: useAziendaManager.js
+   📍 Percorso: packages\shared-core\hooks\useAziendaManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const updateDatiAzienda, useAziendaManager
+   🔗 COLLEGAMENTI: Usa -> [ firestore, storage ]
+   ------------------------------------------------
+
+📄 FILE: useBackupManager.js
+   📍 Percorso: packages\shared-core\hooks\useBackupManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const eseguiBackupCompleto, const documenti, const sanitized, useBackupManager
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useCantiereReportGenerator.jsx
+   📍 Percorso: packages\shared-core\hooks\useCantiereReportGenerator.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const generateFullReport, const userMap, const reportsDelCantiere, const ispezioniDelCantiere, const assegnazioniDelCantiere, useCantiereReportGeneratorx
+   ------------------------------------------------
+
+📄 FILE: useCantieriManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useCantieriManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const addCantiere, const companyName, const addSubcantiere, const updateStatoSubcantiere, useCantieriManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useClientsManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useClientsManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const addClient, const updateClient, const importClientsBatch, const addReferente, useClientsManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, schemas.js ]
+   ------------------------------------------------
+
+📄 FILE: useCompaniesManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useCompaniesManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const addCompanyWithUser, const updateCompanyFeatures, useCompaniesManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, FirebaseContext.jsx ]
+   ------------------------------------------------
+
+📄 FILE: useDDTManager.js
+   📍 Percorso: packages\shared-core\hooks\useDDTManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const uploadDDT, useDDTManager
+   🔗 COLLEGAMENTI: Usa -> [ firestore, storage ]
+   ------------------------------------------------
+
+📄 FILE: useDocumentiManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useDocumentiManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const addDocumento, const deleteDocumento, const getCompanyDocuments, const documents, const uploadFiles, useDocumentiManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, storage ]
+   ------------------------------------------------
+
+📄 FILE: useElaborazioneFormLogic.js
+   📍 Percorso: packages\shared-core\hooks\useElaborazioneFormLogic.js
+   ⚙️ FUNZIONI/COMPONENTI: const costiTotali, const valoreScontato, const utilePrevisto, const handleChange, const handleSubmit, useElaborazioneFormLogic
+   ------------------------------------------------
+
+📄 FILE: useFatturazioneManager.js
+   📍 Percorso: packages\shared-core\hooks\useFatturazioneManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const handleError, const calcolaProssimoNumero, const createFattura, const updateFattura, const updateStatoFattura, useFatturazioneManager
+   ------------------------------------------------
+
+📄 FILE: useFormAuthorizationManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useFormAuthorizationManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const updateAuthorizations, useFormAuthorizationManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useFormManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useFormManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const addFormTemplate, const getFormStructure, useFormManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useFormRenderer.js
+   📍 Percorso: packages\shared-core\hooks\useFormRenderer.js
+   ⚙️ FUNZIONI/COMPONENTI: const getNestedValue, const openFilePicker, const fetchTemplate, const populateInitialData, const handleChange, useFormRenderer
+   🔗 COLLEGAMENTI: Usa -> [ firestore, FirebaseContext, storage ]
+   ------------------------------------------------
+
+📄 FILE: useFornitoriManager.js
+   📍 Percorso: packages\shared-core\hooks\useFornitoriManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const addFornitore, const updateFornitore, const deleteFornitore, const addFatturaAcquisto, const updateFatturaAcquisto, useFornitoriManager
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useHRManager.js
+   📍 Percorso: packages\shared-core\hooks\useHRManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const inviaRichiestaFerie, const gestisciRichiesta, useHRManager
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useMagazzinoManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useMagazzinoManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const addAttrezzatura, const addMateriale, const processaDDT, const accettaSegnalazione, const risolviRiparazione, useMagazzinoManagerx
+   🔗 COLLEGAMENTI: Usa -> [ storage ]
+   ------------------------------------------------
+
+📄 FILE: useManutenzioniManager.js
+   📍 Percorso: packages\shared-core\hooks\useManutenzioniManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const addScadenza, const completaManutenzione, const deleteScadenza, useManutenzioniManager
+   ------------------------------------------------
+
+📄 FILE: useNoteOperativeManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useNoteOperativeManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const getCurrentLocation, const addNotaOperativa, const uploadPromises, useNoteOperativeManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, storage, FirebaseContext ]
+   ------------------------------------------------
+
+📄 FILE: useNotificheManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useNotificheManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const markAsRead, useNotificheManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useOfferteManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useOfferteManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const handleError, const logProroga, const inviaOfferta, const addOfferta, const updateOfferta, useOfferteManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, useDocumentiManager, useClientsManager, schemas ]
+   ------------------------------------------------
+
+📄 FILE: usePersonnelManager.jsx
+   📍 Percorso: packages\shared-core\hooks\usePersonnelManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const addPersonnel, const updatePersonnel, const importPersonnelBatch, usePersonnelManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, storage ]
+   ------------------------------------------------
+
+📄 FILE: usePresenzeAdminManager.js
+   📍 Percorso: packages\shared-core\hooks\usePresenzeAdminManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const parseDayString, const createPayload, const saveGridChanges, usePresenzeAdminManager
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: usePresenzeManager.jsx
+   📍 Percorso: packages\shared-core\hooks\usePresenzeManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const toTimestamp, const creaNuovoStato, const checkIn, const checkOut, const segnalaMalattia, usePresenzeManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useProgrammazioneManager.js
+   📍 Percorso: packages\shared-core\hooks\useProgrammazioneManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const createTask, const updateTask, const deleteTask, const moveTaskAndDetectConflicts, const detectConflicts, useProgrammazioneManager
+   🔗 COLLEGAMENTI: Usa -> [ FirebaseContext, firestore ]
+   ------------------------------------------------
+
+📄 FILE: usePublishManager.js
+   📍 Percorso: packages\shared-core\hooks\usePublishManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const areTasksModified, const publishBozza, const liveMap, usePublishManager
+   ------------------------------------------------
+
+📄 FILE: useRapportiniManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useRapportiniManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const saveRapportino, useRapportiniManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useReportManagement.jsx
+   📍 Percorso: packages\shared-core\hooks\useReportManagement.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const requestSort, const finalSortedItems, useReportManagementx
+   ------------------------------------------------
+
+📄 FILE: useReportsManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useReportsManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const addReport, const updateReport, const deleteReport, useReportsManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, storage ]
+   ------------------------------------------------
+
+📄 FILE: useReportSubmission.jsx
+   📍 Percorso: packages\shared-core\hooks\useReportSubmission.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const handlePhotoCapture, const handleVideoCapture, const handleLocation, const handleFormSubmit, useReportSubmissionx
+   🔗 COLLEGAMENTI: Usa -> [ firestore, storage, schemas.js, dataParsers.js ]
+   ------------------------------------------------
+
+📄 FILE: useReportTecnicoManager.jsx
+   📍 Percorso: packages\shared-core\hooks\useReportTecnicoManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const saveReportTecnico, useReportTecnicoManagerx
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useRevisioneLogic.js
+   📍 Percorso: packages\shared-core\hooks\useRevisioneLogic.js
+   ⚙️ FUNZIONI/COMPONENTI: const isScaduta, const documentiStatus, const richiesti, const findFileById, const handleControlloDocClick, useRevisioneLogic
+   ------------------------------------------------
+
+📄 FILE: useRiconsegneData.jsx
+   📍 Percorso: packages\shared-core\hooks\useRiconsegneData.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const enrichData, const articoloCorrispondente, const dipendenteCorrispondente, const checkAndSetData, useRiconsegneDatax
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useSALManager.js
+   📍 Percorso: packages\shared-core\hooks\useSALManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const addSAL, const updateSAL, const deleteSAL, useSALManager
+   ------------------------------------------------
+
+📄 FILE: useScadenziarioManager.js
+   📍 Percorso: packages\shared-core\hooks\useScadenziarioManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const scadenze, const scadenzeFiltrate, const totali, useScadenziarioManager
+   ------------------------------------------------
+
+📄 FILE: useSegnalazioniGuasti.jsx
+   📍 Percorso: packages\shared-core\hooks\useSegnalazioniGuasti.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const unsubscribe, const fetchedSegnalazioni, useSegnalazioniGuastix
+   🔗 COLLEGAMENTI: Usa -> [ firestore ]
+   ------------------------------------------------
+
+📄 FILE: useSicurezzaManager.js
+   📍 Percorso: packages\shared-core\hooks\useSicurezzaManager.js
+   ⚙️ FUNZIONI/COMPONENTI: const uploadPOS, const confermaRicezioneDPI, useSicurezzaManager
+   🔗 COLLEGAMENTI: Usa -> [ storage ]
+   ------------------------------------------------
+
+####################################################
+📦 AREA: PACKAGES/SHARED-UI
+####################################################
+
+📄 FILE: ActionButtons.jsx
+   📍 Percorso: packages\shared-ui\components\ActionButtons.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ActionButtons
+   🔗 COLLEGAMENTI: Usa -> [ themeContext.jsx ]
+   ------------------------------------------------
+
+📄 FILE: AddMaterialeForm.jsx
+   📍 Percorso: packages\shared-ui\components\AddMaterialeForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AddMaterialeForm, const handleChange, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: AgendaContent.jsx
+   📍 Percorso: packages\shared-ui\components\AgendaContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AgendaContent, const defaultHandlePrevMonth, const defaultHandleNextMonth, const filteredEvents, const handleDayClick
+   🔗 COLLEGAMENTI: Usa -> [ Calendar, UserSelector, shared-ui, DettagliScadenzaModal, AggiungiDocumentoForm ]
+   ------------------------------------------------
+
+📄 FILE: AggiungiScadenzaModal.jsx
+   📍 Percorso: packages\shared-ui\components\AggiungiScadenzaModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AggiungiScadenzaModal, const handleChange, const handleSubmit, const mezzo, const assetList
+   ------------------------------------------------
+
+📄 FILE: AltriDocumentiModal.jsx
+   📍 Percorso: packages\shared-ui\components\AltriDocumentiModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AltriDocumentiModal, const handleInputChange, const handleSave
+   ------------------------------------------------
+
+📄 FILE: AnalisiCommessaDashboard.jsx
+   📍 Percorso: packages\shared-ui\components\AnalisiCommessaDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatCurrency, const formatDate, const MiniTrendChart, const sortedItems, const points
+   ------------------------------------------------
+
+📄 FILE: AnalisiCostiForm.jsx
+   📍 Percorso: packages\shared-ui\components\AnalisiCostiForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AnalisiCostiForm, const costiBase, const valoreImprevisti, const costiTotali, const handleChange
+   🔗 COLLEGAMENTI: Usa -> [ FileUploadZone ]
+   ------------------------------------------------
+
+📄 FILE: AssegnazioniMenuMagazzino.jsx
+   📍 Percorso: packages\shared-ui\components\AssegnazioniMenuMagazzino.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AssegnazioniMenuMagazzino
+   ------------------------------------------------
+
+📄 FILE: BackupDashboard.jsx
+   📍 Percorso: packages\shared-ui\components\BackupDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: BackupDashboard
+   ------------------------------------------------
+
+📄 FILE: Calendar.jsx
+   📍 Percorso: packages\shared-ui\components\Calendar.jsx
+   ⚙️ FUNZIONI/COMPONENTI: Calendar, const getDayEvents, const renderDayCell
+   ------------------------------------------------
+
+📄 FILE: CantieriList.jsx
+   📍 Percorso: packages\shared-ui\components\CantieriList.jsx
+   ⚙️ FUNZIONI/COMPONENTI: CantieriList, const companyMap
+   ------------------------------------------------
+
+📄 FILE: CartellinoBadge.jsx
+   📍 Percorso: packages\shared-ui\components\CartellinoBadge.jsx
+   ⚙️ FUNZIONI/COMPONENTI: CartellinoBadge
+   ------------------------------------------------
+
+📄 FILE: Checklist.jsx
+   📍 Percorso: packages\shared-ui\components\Checklist.jsx
+   ⚙️ FUNZIONI/COMPONENTI: Checklist
+   ------------------------------------------------
+
+📄 FILE: ConfermaInvioModal.jsx
+   📍 Percorso: packages\shared-ui\components\ConfermaInvioModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ConfermaInvioModal
+   ------------------------------------------------
+
+📄 FILE: ConfigurazioneAziendaView.jsx
+   📍 Percorso: packages\shared-ui\components\ConfigurazioneAziendaView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ConfigurazioneAziendaView, const handleChange, const handleFileChange, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: ConfigurazioneCostiModal.jsx
+   📍 Percorso: packages\shared-ui\components\ConfigurazioneCostiModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ConfigurazioneCostiModal, const handleChange, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: ControlloDocumentaleModal.jsx
+   📍 Percorso: packages\shared-ui\components\ControlloDocumentaleModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ControlloDocumentaleModal
+   ------------------------------------------------
+
+📄 FILE: DDTCaptureModal.jsx
+   📍 Percorso: packages\shared-ui\components\DDTCaptureModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DDTCaptureModal, const ordiniFiltrati, const handleFileChange, const handleSubmit, const cantiereSelezionato
+   ------------------------------------------------
+
+📄 FILE: DettagliAssegnazioneView.jsx
+   📍 Percorso: packages\shared-ui\components\DettagliAssegnazioneView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DettagliAssegnazioneView, const handleConferma, const handleRichiestaRestituzione, const handleSegnalazione, const renderActionButtons
+   ------------------------------------------------
+
+📄 FILE: DettagliEventoModal.jsx
+   📍 Percorso: packages\shared-ui\components\DettagliEventoModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DettagliEventoModal, const userMap, const currentUserPartecipante, const handleEditClick, const handleConfermaClick
+   ------------------------------------------------
+
+📄 FILE: DettagliScadenzaModal.jsx
+   📍 Percorso: packages\shared-ui\components\DettagliScadenzaModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DettagliScadenzaModal
+   ------------------------------------------------
+
+📄 FILE: DocumentiChecklist.jsx
+   📍 Percorso: packages\shared-ui\components\DocumentiChecklist.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DocumentiChecklist, const handleToggle, const newItems
+   ------------------------------------------------
+
+📄 FILE: FatturaAcquistoForm.jsx
+   📍 Percorso: packages\shared-ui\components\FatturaAcquistoForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatCurrency, FatturaAcquistoForm, const subcantieriFiltrati, const ordiniSuggeriti, const handleChange
+   ------------------------------------------------
+
+📄 FILE: FatturaForm.jsx
+   📍 Percorso: packages\shared-ui\components\FatturaForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatCurrency, FatturaForm, const { imponibile, importoIva, totaleDocumento }, const imp, const handleChange
+   🔗 COLLEGAMENTI: Usa -> [ FatturaPrintTemplate ]
+   ------------------------------------------------
+
+📄 FILE: FatturaPrintTemplate.jsx
+   📍 Percorso: packages\shared-ui\components\FatturaPrintTemplate.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatCurrency, const formatDate, FatturaPrintTemplate
+   ------------------------------------------------
+
+📄 FILE: FatturazioneDashboard.jsx
+   📍 Percorso: packages\shared-ui\components\FatturazioneDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatCurrency, FatturazioneDashboard
+   🔗 COLLEGAMENTI: Usa -> [ FatturaPrintTemplate ]
+   ------------------------------------------------
+
+📄 FILE: FeatureToggle.jsx
+   📍 Percorso: packages\shared-ui\components\FeatureToggle.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FeatureToggle
+   ------------------------------------------------
+
+📄 FILE: FileUploadZone.jsx
+   📍 Percorso: packages\shared-ui\components\FileUploadZone.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FileUploadZone, const handleDrag, const handleDrop, const handleChange, const onZoneClick
+   ------------------------------------------------
+
+📄 FILE: FormList.jsx
+   📍 Percorso: packages\shared-ui\components\FormList.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FormList
+   ------------------------------------------------
+
+📄 FILE: FormReader.jsx
+   📍 Percorso: packages\shared-ui\components\FormReader.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FormReader, const formHeight
+   ------------------------------------------------
+
+📄 FILE: FornitoreForm.jsx
+   📍 Percorso: packages\shared-ui\components\FornitoreForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FornitoreForm, const handleChange, const handleFileChange, const handleRemoveFile, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: FornitoriDashboard.jsx
+   📍 Percorso: packages\shared-ui\components\FornitoriDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatCurrency, const formatDate, FornitoriDashboard, const getTabClass, const getDateClass
+   ------------------------------------------------
+
+📄 FILE: GanttView.jsx
+   📍 Percorso: packages\shared-ui\components\GanttView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GanttView, const mapZoomToView
+   ------------------------------------------------
+
+📄 FILE: GaraPrivataFields.jsx
+   📍 Percorso: packages\shared-ui\components\GaraPrivataFields.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GaraPrivataFields
+   🔗 COLLEGAMENTI: Usa -> [ DocumentiChecklist, FileUploadZone ]
+   ------------------------------------------------
+
+📄 FILE: GestioneArchivioView.jsx
+   📍 Percorso: packages\shared-ui\components\GestioneArchivioView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const StoricoTimeline, const eventiOrdinati, GestioneArchivioView, const sortedArchivio, const requestSort
+   ------------------------------------------------
+
+📄 FILE: GestioneAssegnazioniMagazzinoView.jsx
+   📍 Percorso: packages\shared-ui\components\GestioneAssegnazioniMagazzinoView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GestioneAssegnazioniMagazzinoView, const sortedAssegnazioni, const requestSort, const getSortIcon, const SortableHeader
+   ------------------------------------------------
+
+📄 FILE: GestioneAziendeSidebar.jsx
+   📍 Percorso: packages\shared-ui\components\GestioneAziendeSidebar.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GestioneAziendeSidebar
+   🔗 COLLEGAMENTI: Usa -> [ themeContext.jsx ]
+   ------------------------------------------------
+
+📄 FILE: GestioneFerieView.jsx
+   📍 Percorso: packages\shared-ui\components\GestioneFerieView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GestioneFerieView, const filtered, const formatDate, const formatDateTime
+   ------------------------------------------------
+
+📄 FILE: GestioneGuastiView.jsx
+   📍 Percorso: packages\shared-ui\components\GestioneGuastiView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GestioneGuastiView, const getNomeArticolo, const getNomeUtente, const getSeriale, const { segnalati, inRiparazione }
+   ------------------------------------------------
+
+📄 FILE: GestioneMagazzinoView.jsx
+   📍 Percorso: packages\shared-ui\components\GestioneMagazzinoView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GestioneMagazzinoView, const sortedArticoli, const getValue, const requestSort, const getSortIcon
+   🔗 COLLEGAMENTI: Usa -> [ shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: GestioneManutenzioniView.jsx
+   📍 Percorso: packages\shared-ui\components\GestioneManutenzioniView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GestioneManutenzioniView, const scadenzeConStato, const filteredList, const handleSaveNew
+   🔗 COLLEGAMENTI: Usa -> [ AggiungiScadenzaModal ]
+   ------------------------------------------------
+
+📄 FILE: GestioneRiconsegneView.jsx
+   📍 Percorso: packages\shared-ui\components\GestioneRiconsegneView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GestioneRiconsegneView, const getNomeArticolo, const getNomeUtente, const getSeriale, const getDataRichiesta
+   ------------------------------------------------
+
+📄 FILE: ImportMaterialiView.jsx
+   📍 Percorso: packages\shared-ui\components\ImportMaterialiView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ImportMaterialiView, const handleFileChange, const handleImportClick
+   ------------------------------------------------
+
+📄 FILE: LinkDDTModal.jsx
+   📍 Percorso: packages\shared-ui\components\LinkDDTModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatDate, LinkDDTModal, const ordiniSuggeriti, const handleSubmit, const nomeFornitore
+   ------------------------------------------------
+
+📄 FILE: MagazzinoSidebar.jsx
+   📍 Percorso: packages\shared-ui\components\MagazzinoSidebar.jsx
+   ⚙️ FUNZIONI/COMPONENTI: MagazzinoSidebar
+   ------------------------------------------------
+
+📄 FILE: NotificationBell.jsx
+   📍 Percorso: packages\shared-ui\components\NotificationBell.jsx
+   ⚙️ FUNZIONI/COMPONENTI: NotificationBell, const unreadNotifiche, const handleItemClick
+   ------------------------------------------------
+
+📄 FILE: OfferteSidebar.jsx
+   📍 Percorso: packages\shared-ui\components\OfferteSidebar.jsx
+   ⚙️ FUNZIONI/COMPONENTI: OfferteSidebar
+   🔗 COLLEGAMENTI: Usa -> [ themeContext ]
+   ------------------------------------------------
+
+📄 FILE: PlannerSidebar.jsx
+   📍 Percorso: packages\shared-ui\components\PlannerSidebar.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const FaseItem, const CantiereItem, PlannerSidebar, const subcantieriFiltrati, const risultato
+   ------------------------------------------------
+
+📄 FILE: PlanningToolbar.jsx
+   📍 Percorso: packages\shared-ui\components\PlanningToolbar.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const ToolbarButton, PlanningToolbar
+   ------------------------------------------------
+
+📄 FILE: PresenzeControllo.jsx
+   📍 Percorso: packages\shared-ui\components\PresenzeControllo.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const isTimestampToday, const AssenzaModal, const handleSubmit, PresenzeControllo, const { stato, idStato, ultimoCheckOutFuOggi }
+   ------------------------------------------------
+
+📄 FILE: PresenzeViewerModal.jsx
+   📍 Percorso: packages\shared-ui\components\PresenzeViewerModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatTime, const formatDate, const ErroreFormInline, PresenzeViewerModal, const righeTabella
+   ------------------------------------------------
+
+📄 FILE: PreventivoOrdineForm.jsx
+   📍 Percorso: packages\shared-ui\components\PreventivoOrdineForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatCurrency, PreventivoOrdineForm, const { imponibile, totaleCalcolato }, const imp, const handleChange
+   ------------------------------------------------
+
+📄 FILE: ReferenteModal.jsx
+   📍 Percorso: packages\shared-ui\components\ReferenteModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ReferenteModal, const handleSelect, const handleAdd
+   🔗 COLLEGAMENTI: Usa -> [ AggiungiReferenteForm ]
+   ------------------------------------------------
+
+📄 FILE: RevisioneInvioForm.jsx
+   📍 Percorso: packages\shared-ui\components\RevisioneInvioForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: RevisioneInvioForm
+   🔗 COLLEGAMENTI: Usa -> [  Importa l, ControlloDocumentaleModal, ScadenzaAlertModal, ConfermaInvioModal ]
+   ------------------------------------------------
+
+📄 FILE: RichiestaFerieModal.jsx
+   📍 Percorso: packages\shared-ui\components\RichiestaFerieModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: RichiestaFerieModal, const handleSubmit, const handleChange, const formatDate, const renderStato
+   ------------------------------------------------
+
+📄 FILE: SALList.jsx
+   📍 Percorso: packages\shared-ui\components\SALList.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatCurrency, const formatDate, SALList, const totaleMaturato
+   ------------------------------------------------
+
+📄 FILE: ScadenzaAlertModal.jsx
+   📍 Percorso: packages\shared-ui\components\ScadenzaAlertModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ScadenzaAlertModal
+   ------------------------------------------------
+
+📄 FILE: ScadenziarioDashboard.jsx
+   📍 Percorso: packages\shared-ui\components\ScadenziarioDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatCurrency, const formatDate, ScadenziarioDashboard, const getDateClass
+   ------------------------------------------------
+
+📄 FILE: SignatureModal.jsx
+   📍 Percorso: packages\shared-ui\components\SignatureModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: SignatureModal, const clear, const save
+   ------------------------------------------------
+
+📄 FILE: SopralluogoReportModal.jsx
+   📍 Percorso: packages\shared-ui\components\SopralluogoReportModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: SopralluogoReportModal, const adjustTextareaHeight, const handleChange, const handleSaveClick, const { textFields, mediaFields }
+   ------------------------------------------------
+
+📄 FILE: StatoDocumenti.jsx
+   📍 Percorso: packages\shared-ui\components\StatoDocumenti.jsx
+   ⚙️ FUNZIONI/COMPONENTI: StatoDocumenti, const fetchDocs, const documentiStato, const handleManualUpload, const handleSaveClick
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, FileUploadZone ]
+   ------------------------------------------------
+
+📄 FILE: TaskEditorModal.jsx
+   📍 Percorso: packages\shared-ui\components\TaskEditorModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const calcolaDurataOre, const formattaDataPerInput, calcolaDataFineReale, TaskEditorModal, const { automezziList, attrezzatureList }
+   ------------------------------------------------
+
+📄 FILE: ThemeProvider.jsx
+   📍 Percorso: packages\shared-ui\components\ThemeProvider.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ThemeProvider
+   🔗 COLLEGAMENTI: Usa -> [ themeContext.jsx ]
+   ------------------------------------------------
+
+📄 FILE: TimelineScheduler.jsx
+   📍 Percorso: packages\shared-ui\components\TimelineScheduler.jsx
+   ⚙️ FUNZIONI/COMPONENTI: TimelineScheduler, const mapZoomToView, const handleEventDrop, const handleExternalDrop, const handleEventClick
+   ------------------------------------------------
+
+📄 FILE: UnscheduledSidebar.jsx
+   📍 Percorso: packages\shared-ui\components\UnscheduledSidebar.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const FaseItem, UnscheduledSidebar, const renderContent
+   ------------------------------------------------
+
+📄 FILE: UserSelector.jsx
+   📍 Percorso: packages\shared-ui\components\UserSelector.jsx
+   ⚙️ FUNZIONI/COMPONENTI: UserSelector
+   ------------------------------------------------
+
+📄 FILE: themeContext.jsx
+   📍 Percorso: packages\shared-ui\context\themeContext.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DEFAULT_THEME, COLOR_CLASSES, ThemeContext
+   ------------------------------------------------
+
+📄 FILE: AddNotaOperativaForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AddNotaOperativaForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AddNotaOperativaForm, const handleFileChange, const newPreviews, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: AggiungiArticoloForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AggiungiArticoloForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AggiungiArticoloForm, const handleChange, const handleFileChange, const handleCategoriaChange, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ themeContext.jsx ]
+   ------------------------------------------------
+
+📄 FILE: AggiungiAttrezzaturaForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AggiungiAttrezzaturaForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AggiungiAttrezzaturaForm, const ddtFiltrati, const ordiniFiltrati, const handleChange, const handleFileChange
+   🔗 COLLEGAMENTI: Usa -> [ themeContext.jsx ]
+   ------------------------------------------------
+
+📄 FILE: AggiungiDocumentoForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AggiungiDocumentoForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AggiungiDocumentoForm, const handleFileChange, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: AggiungiEventoForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AggiungiEventoForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AggiungiEventoForm, const handlePartecipantiChange, const selectedIds, const handleSubmit, const organizzatoreOriginale
+   ------------------------------------------------
+
+📄 FILE: AggiungiMaterialeForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AggiungiMaterialeForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AggiungiMaterialeForm, const handleChange, const handleDDTChange, const selectedDDT, const ordineCollegato
+   🔗 COLLEGAMENTI: Usa -> [ themeContext.jsx ]
+   ------------------------------------------------
+
+📄 FILE: AggiungiReferenteForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AggiungiReferenteForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AggiungiReferenteForm, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: AnalisiCostiForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AnalisiCostiForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AnalisiCostiForm, const handleAddItem, const handleRemoveItem, const handleItemChange, const nuoveVoci
+   ------------------------------------------------
+
+📄 FILE: AnalisiPreliminareForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AnalisiPreliminareForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AnalisiPreliminareForm
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, ReferenteModal, GaraPrivataFields ]
+   ------------------------------------------------
+
+📄 FILE: AssegnaAttrezzaturaForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AssegnaAttrezzaturaForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AssegnaAttrezzaturaForm, const handleAddRiga, const handleRemoveRiga, const handleRigaChange, const nuoveRighe
+   🔗 COLLEGAMENTI: Usa -> [ themeContext.jsx ]
+   ------------------------------------------------
+
+📄 FILE: AssegnaMaterialeForm.jsx
+   📍 Percorso: packages\shared-ui\forms\AssegnaMaterialeForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AssegnaMaterialeForm, const materialiDisponibili, const selectedMateriale, const handleSubmit, const utenteRitiro
+   🔗 COLLEGAMENTI: Usa -> [ themeContext.jsx ]
+   ------------------------------------------------
+
+📄 FILE: ElaborazioneForm.jsx
+   📍 Percorso: packages\shared-ui\forms\ElaborazioneForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ElaborazioneForm, const handleFormSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, AnalisiCostiForm, StatoDocumenti, SopralluogoReportModal, FileUploadZone ]
+   ------------------------------------------------
+
+📄 FILE: GenericFormRenderer.jsx
+   📍 Percorso: packages\shared-ui\forms\GenericFormRenderer.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const FileUploadZone, const renderBundleInput, GenericFormRenderer, const renderField, const fieldIds
+   ------------------------------------------------
+
+📄 FILE: ModificaArticoloForm.jsx
+   📍 Percorso: packages\shared-ui\forms\ModificaArticoloForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ModificaArticoloForm, const getInitialFormData, const handleChange, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: NuovaOffertaForm.jsx
+   📍 Percorso: packages\shared-ui\forms\NuovaOffertaForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: NuovaOffertaForm, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: ResoMaterialeForm.jsx
+   📍 Percorso: packages\shared-ui\forms\ResoMaterialeForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ResoMaterialeForm, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: RevisioneInvioForm.jsx
+   📍 Percorso: packages\shared-ui\forms\RevisioneInvioForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: RevisioneInvioForm, const handleInvioMailChange, const handlePrepareDraftClick, const foundDocuments
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, ControlloDocumentaleModal, ScadenzaAlertModal, ConfermaInvioModal, FileUploadZone ]
+   ------------------------------------------------
+
+📄 FILE: SALForm.jsx
+   📍 Percorso: packages\shared-ui\forms\SALForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: SALForm, const handleChange, const handleSubmit, const formatCurrency
+   ------------------------------------------------
+
+📄 FILE: VerbaleConsegnaDPI.jsx
+   📍 Percorso: packages\shared-ui\pdf\VerbaleConsegnaDPI.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatDate, VerbaleConsegnaDPI
+   ------------------------------------------------
+
+📄 FILE: AgendaView.jsx
+   📍 Percorso: packages\shared-ui\views\AgendaView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AgendaView
+   🔗 COLLEGAMENTI: Usa -> [ Calendar.jsx, UserSelector.jsx, DettagliEventoModal.jsx, AggiungiEventoForm.jsx, DettagliScadenzaModal.jsx ]
+   ------------------------------------------------
+
+📄 FILE: CantiereReportDetailView.jsx
+   📍 Percorso: packages\shared-ui\views\CantiereReportDetailView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: CantiereReportDetailView, const formatDate
+   ------------------------------------------------
+
+📄 FILE: CantiereReportOverview.jsx
+   📍 Percorso: packages\shared-ui\views\CantiereReportOverview.jsx
+   ⚙️ FUNZIONI/COMPONENTI: CantiereReportOverview, const formatDate
+   ------------------------------------------------
+
+📄 FILE: ClientDetailView.jsx
+   📍 Percorso: packages\shared-ui\views\ClientDetailView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const DetailItem, ClientDetailView
+   ------------------------------------------------
+
+📄 FILE: DashboardContent.jsx
+   📍 Percorso: packages\shared-ui\views\DashboardContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DashboardContent
+   ------------------------------------------------
+
+📄 FILE: OffertaWorkspaceView.jsx
+   📍 Percorso: packages\shared-ui\views\OffertaWorkspaceView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: OffertaWorkspaceView, const renderActiveForm
+   🔗 COLLEGAMENTI: Usa -> [ AnalisiPreliminareForm, ElaborazioneForm, RevisioneInvioForm ]
+   ------------------------------------------------
+
+📄 FILE: OfferteDashboard.jsx
+   📍 Percorso: packages\shared-ui\views\OfferteDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: OfferteDashboard
+   🔗 COLLEGAMENTI: Usa -> [ NuovaOffertaForm ]
+   ------------------------------------------------
+
+📄 FILE: OfferteListView.jsx
+   📍 Percorso: packages\shared-ui\views\OfferteListView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: OfferteListView
+   ------------------------------------------------
+
+📄 FILE: PersonnelDetailView.jsx
+   📍 Percorso: packages\shared-ui\views\PersonnelDetailView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const DetailItem, PersonnelDetailView
+   ------------------------------------------------
+
+####################################################
+📦 AREA: APPS/GESTIONALE/SRC
+####################################################
+
+📄 FILE: AddClientForm.jsx
+   📍 Percorso: apps\gestionale\src\AddClientForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AddClientForm, const getInitialFormData, const handleChange, const handleSubmit, //  AddClientForm;
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: AddPersonnelForm.jsx
+   📍 Percorso: apps\gestionale\src\AddPersonnelForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AddPersonnelForm, const getInitialFormData, const handleChange, const handleFileChange, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: AggiungiCantiereForm.jsx
+   📍 Percorso: apps\gestionale\src\AggiungiCantiereForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AggiungiCantiereForm, const cliente, const handleInputChange, const handleClienteChange, const clienteSezionato
+   🔗 COLLEGAMENTI: Usa -> [ shared-ui, shared-core, FasiLavoroManager ]
+   ------------------------------------------------
+
+📄 FILE: AggiungiSubcantiereForm.jsx
+   📍 Percorso: apps\gestionale\src\AggiungiSubcantiereForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AggiungiSubcantiereForm, const handleInputChange, const cantiereSelezionato, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: App.jsx
+   📍 Percorso: apps\gestionale\src\App.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const LoadingScreen, App
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, AuthScreen.jsx,  Assicurati che l ]
+   ------------------------------------------------
+
+📄 FILE: App.test.js
+   📍 Percorso: apps\gestionale\src\App.test.js
+   🔗 COLLEGAMENTI: Usa -> [ App ]
+   ------------------------------------------------
+
+📄 FILE: AssegnaCantiereForm.jsx
+   📍 Percorso: apps\gestionale\src\AssegnaCantiereForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AssegnaCantiereForm, const formatTimestampForInput, const prepostoId, const operaiIds, const preposti
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: AssegnazioniContent.jsx
+   📍 Percorso: apps\gestionale\src\AssegnazioniContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AssegnazioniContent, const getSiteName, const site, const getUserNameById, const person
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, AssegnaCantiereForm.jsx ]
+   ------------------------------------------------
+
+📄 FILE: AssegnazioniContentMagazzino.jsx
+   📍 Percorso: apps\gestionale\src\AssegnazioniContentMagazzino.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const renderView, AssegnazioniContentMagazzino;
+   🔗 COLLEGAMENTI: Usa -> [ ThemeCustomizer.jsx, shared-ui, AssegnazioniMenuMagazzino.jsx, GestioneAssegnazioniMagazzinoView.jsx, GestioneGuastiView.jsx ]
+   ------------------------------------------------
+
+📄 FILE: AssegnazioniView.jsx
+   📍 Percorso: apps\gestionale\src\AssegnazioniView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AssegnazioniView, const setLocalView, const handleSaveSuccess, const annullaSegnalazione, const dismettiArticolo
+   🔗 COLLEGAMENTI: Usa -> [ firestore, shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: AttrezzatureView.jsx
+   📍 Percorso: apps\gestionale\src\AttrezzatureView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AttrezzatureView, const attrezzature, const segnalazioniInSospeso, const itemsInRiparazione, const handleSaveSuccess
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: AuthScreen.jsx
+   📍 Percorso: apps\gestionale\src\AuthScreen.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AuthScreen, const handleLogin, const handleSignup
+   🔗 COLLEGAMENTI: Usa -> [ shared-ui, auth, firestore, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: AziendaSelector.jsx
+   📍 Percorso: apps\gestionale\src\AziendaSelector.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AziendaSelector
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: server.js
+   📍 Percorso: apps\gestionale\src\backend\server.js
+   ⚙️ FUNZIONI/COMPONENTI: const importPromises
+   🔗 COLLEGAMENTI: Usa -> [ firebase-admin, firebase-serviceAccountKey.json' with { type: 'json ]
+   ------------------------------------------------
+
+📄 FILE: CantiereDashboard.jsx
+   📍 Percorso: apps\gestionale\src\CantiereDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: CantiereDashboard, const cantieriAttivi, const offerteDaConvertire, const handleBack, const handleIniziaConversione
+   🔗 COLLEGAMENTI: Usa -> [ AggiungiCantiereForm.jsx, shared-ui, DettagliCantiereView.jsx, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: CantiereReportDashboard.jsx
+   📍 Percorso: apps\gestionale\src\CantiereReportDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: CantiereReportDashboard
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: ClientsContent.jsx
+   📍 Percorso: apps\gestionale\src\ClientsContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ClientsContent, const companyNameMap, const filteredClients, const handleSelectClient, const handleEditClient
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, AddClientForm.jsx, shared-ui, ImportClients.jsx ]
+   ------------------------------------------------
+
+📄 FILE: CompaniesContent.jsx
+   📍 Percorso: apps\gestionale\src\CompaniesContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const EditCompanyForm, const handleChange, const handleSubmit, CompaniesContent, const getInitialFormData
+   🔗 COLLEGAMENTI: Usa -> [ shared-ui, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: ActionButtons.js
+   📍 Percorso: apps\gestionale\src\components\ActionButtons.js
+   ⚙️ FUNZIONI/COMPONENTI: const ActionButtons, ActionButtons;
+   🔗 COLLEGAMENTI: Usa -> [ ThemeCustomizer ]
+   ------------------------------------------------
+
+📄 FILE: BackupContent.jsx
+   📍 Percorso: apps\gestionale\src\components\admin\BackupContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: BackupContent
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: AggiungiDocumentoForm.jsx
+   📍 Percorso: apps\gestionale\src\components\AggiungiDocumentoForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AggiungiDocumentoForm, const handleFileChange, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: AggiungiEventoForm.jsx
+   📍 Percorso: apps\gestionale\src\components\AggiungiEventoForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: // Modificato in '' per essere un export nominativo, AggiungiEventoForm, const invitato, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: AnalisiCommessaContent.jsx
+   📍 Percorso: apps\gestionale\src\components\analisi\AnalisiCommessaContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AnalisiCommessaContent, const currentCompany, const handleSaveSettings
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui, firestore ]
+   ------------------------------------------------
+
+📄 FILE: ArchivioTecniciView.jsx
+   📍 Percorso: apps\gestionale\src\components\ArchivioTecniciView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const ArchivioTecniciView, ArchivioTecniciView;
+   ------------------------------------------------
+
+📄 FILE: AuthorizeFormView.jsx
+   📍 Percorso: apps\gestionale\src\components\AuthorizeFormView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const AuthorizeFormView, const existingAuth, const handleCheckboxChange, const handleSave, AuthorizeFormView;
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: AutorizzazioniFormView.jsx
+   📍 Percorso: apps\gestionale\src\components\AutorizzazioniFormView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AutorizzazioniFormView
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, AuthorizeFormView.jsx ]
+   ------------------------------------------------
+
+📄 FILE: CantiereContabilita.jsx
+   📍 Percorso: apps\gestionale\src\components\cantieri\CantiereContabilita.jsx
+   ⚙️ FUNZIONI/COMPONENTI: CantiereContabilita, const salList, const valoreAppalto, const offerta, const handleSave
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: FaseTaglioErbaForm.jsx
+   📍 Percorso: apps\gestionale\src\components\cantieri\FaseTaglioErbaForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FaseTaglioErbaForm, const calcolaDurataOre, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: FaseTaglioPianteForm.jsx
+   📍 Percorso: apps\gestionale\src\components\cantieri\FaseTaglioPianteForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FaseTaglioPianteForm, const handleTipoTaglioChange, const calcolaDurataOre, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: FaseUrbanizzazioneForm.jsx
+   📍 Percorso: apps\gestionale\src\components\cantieri\FaseUrbanizzazioneForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FaseUrbanizzazioneForm, const calcolaDurataOre, const handleSubmit
+   ------------------------------------------------
+
+📄 FILE: FasiLavoroManager.jsx
+   📍 Percorso: apps\gestionale\src\components\cantieri\FasiLavoroManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FasiLavoroManager, const renderForm
+   🔗 COLLEGAMENTI: Usa -> [ FaseTaglioErbaForm, FaseTaglioPianteForm, FaseUrbanizzazioneForm ]
+   ------------------------------------------------
+
+📄 FILE: CreaAziendaView.jsx
+   📍 Percorso: apps\gestionale\src\components\CreaAziendaView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: CreaAziendaView, const handleChange, const handleSimpleChange, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: DashboardAmministrazione.jsx
+   📍 Percorso: apps\gestionale\src\components\dashboard\DashboardAmministrazione.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const isToday, const DashboardWidget, const ActionItem, const QuickLink, DashboardAmministrazione
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: DashboardRouter.jsx
+   📍 Percorso: apps\gestionale\src\components\dashboard\DashboardRouter.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DashboardRouter
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, DashboardTitolare.jsx, DashboardAmministrazione.jsx, DashboardTecnico.jsx, DashboardSuperAdmin.jsx ]
+   ------------------------------------------------
+
+📄 FILE: DashboardSuperAdmin.jsx
+   📍 Percorso: apps\gestionale\src\components\dashboard\DashboardSuperAdmin.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const DashboardWidget, const QuickLink, const StatItem, DashboardSuperAdmin, const { totalAziende, totalUtenti, totalCantieri, totalOfferte }
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: DashboardTecnico.jsx
+   📍 Percorso: apps\gestionale\src\components\dashboard\DashboardTecnico.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const isToday, const DashboardWidget, const QuickLink, DashboardTecnico, const usersMap
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: DashboardTitolare.jsx
+   📍 Percorso: apps\gestionale\src\components\dashboard\DashboardTitolare.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DashboardTitolare, const offerteInviate, const offerteAccettate, const cantieriAttivi
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: DocumentiContent.jsx
+   📍 Percorso: apps\gestionale\src\components\DocumentiContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DocumentiContent, const filteredDocuments, const handleOpenAddForm, const handleOpenEditForm, const handleDelete
+   🔗 COLLEGAMENTI: Usa -> [ shared-ui, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: EditReportForm.jsx
+   📍 Percorso: apps\gestionale\src\components\EditReportForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const EditReportForm, const authorName, const siteName, const handleChange, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: EditReportTecnicoForm.jsx
+   📍 Percorso: apps\gestionale\src\components\EditReportTecnicoForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const EditReportTecnicoForm, const handleChange, const handleSubmit, EditReportTecnicoForm;
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: ElencoFormView.jsx
+   📍 Percorso: apps\gestionale\src\components\ElencoFormView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const ElencoFormView, ElencoFormView;
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: ExcelToFormTool.jsx
+   📍 Percorso: apps\gestionale\src\components\ExcelToFormTool.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const ExcelToFormTool, const handleFileUpload, const initialFormData, const handleInputChange, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, firestore ]
+   ------------------------------------------------
+
+📄 FILE: FatturazioneContent.jsx
+   📍 Percorso: apps\gestionale\src\components\fatturazione\FatturazioneContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FatturazioneContent, const currentCompany, const handleBack, const handleSaveFattura, const handleDeleteFattura
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: FornitoriContent.jsx
+   📍 Percorso: apps\gestionale\src\components\fornitori\FornitoriContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FornitoriContent, const handleBackToList, const handleSaveFornitore, const handleSaveFattura, const handleSavePreventivoOrdine
+   ------------------------------------------------
+
+📄 FILE: GestioneAziendeAdminView.jsx
+   📍 Percorso: apps\gestionale\src\components\GestioneAziendeAdminView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GestioneAziendeAdminView, const renderContent
+   🔗 COLLEGAMENTI: Usa -> [ shared-ui, CreaAziendaView.jsx, GestionePermessiView.jsx, AutorizzazioniFormView.jsx ]
+   ------------------------------------------------
+
+📄 FILE: GestionePermessiView.jsx
+   📍 Percorso: apps\gestionale\src\components\GestionePermessiView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GestionePermessiView, const selectedCompany, const handleFeatureChange, const handleEnableAll, const allFeaturesEnabled
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: ImportMagazzino.jsx
+   📍 Percorso: apps\gestionale\src\components\ImportMagazzino.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const ImportMagazzino, const handleFileChange, const handleSubmit, const headers, const validData
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui, firestore ]
+   ------------------------------------------------
+
+📄 FILE: MagazzinoDashboardLayout.jsx
+   📍 Percorso: apps\gestionale\src\components\MagazzinoDashboardLayout.jsx
+   ⚙️ FUNZIONI/COMPONENTI: MagazzinoDashboardLayout, const renderSubView
+   🔗 COLLEGAMENTI: Usa -> [ shared-ui, shared-core, AziendaSelector.jsx, AttrezzatureView.jsx, AssegnazioniView.jsx, MagazzinoMaterialiView.jsx... ]
+   ------------------------------------------------
+
+📄 FILE: MagazzinoMaterialiView.jsx
+   📍 Percorso: apps\gestionale\src\components\MagazzinoMaterialiView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const formatCurrency, MagazzinoMaterialiView, const allMateriali, const materialiSede, const materialiCantieri
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: ManutenzioniContent.jsx
+   📍 Percorso: apps\gestionale\src\components\manutenzioni\ManutenzioniContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ManutenzioniContent
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: Modal.jsx
+   📍 Percorso: apps\gestionale\src\components\Modal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const Modal, Modal;
+   ------------------------------------------------
+
+📄 FILE: OfferteContent.jsx
+   📍 Percorso: apps\gestionale\src\components\OfferteContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: OfferteContent, const handleCreaAppuntamentoValidation, const availableForms, const authorizedFormDocs, const authorizedFormIds
+   🔗 COLLEGAMENTI: Usa -> [ shared-ui, AziendaSelector ]
+   ------------------------------------------------
+
+📄 FILE: PresenzeDashboard.jsx
+   📍 Percorso: apps\gestionale\src\components\PresenzeDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const getDaysInMonth, const toLocalDayString, const calcolaOreLavoro, PresenzeDashboard, const { giorniDelMese, righeIniziali }
+   ------------------------------------------------
+
+📄 FILE: ProgrammazioneContent.jsx
+   📍 Percorso: apps\gestionale\src\components\programmazione\ProgrammazioneContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ProgrammazioneContent, const cantieriMap, const risorsePerTimeline, const personale, const tasksPerTimeline
+   ------------------------------------------------
+
+📄 FILE: ReportDashboard.jsx
+   📍 Percorso: apps\gestionale\src\components\ReportDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ReportDashboard, const handleEditReport, const handleCloseForm, const handleEditReportTecnico, const handleCloseFormTecnico
+   🔗 COLLEGAMENTI: Usa -> [ ReportView.jsx, ArchivioTecniciView.jsx, EditReportForm.jsx, EditReportTecnicoForm.jsx ]
+   ------------------------------------------------
+
+📄 FILE: ScadenziarioContent.jsx
+   📍 Percorso: apps\gestionale\src\components\scadenziario\ScadenziarioContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ScadenziarioContent
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: SettingsContent.jsx
+   📍 Percorso: apps\gestionale\src\components\SettingsContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: SettingsContent, const currentCompany, const handleSave
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: SicurezzaContent.jsx
+   📍 Percorso: apps\gestionale\src\components\sicurezza\SicurezzaContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: SicurezzaContent, const currentCompany, const dpiConsegnati, const handleUploadPOS, const cantiere
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: FirebaseContext.jsx
+   📍 Percorso: apps\gestionale\src\context\FirebaseContext.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FirebaseProvider, const handleCompanyChange, const unsubscribeAuth, const unsubscribeUser, const unsubscribes
+   🔗 COLLEGAMENTI: Usa -> [ auth, firestore, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: DashboardLayout.jsx
+   📍 Percorso: apps\gestionale\src\DashboardLayout.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DashboardLayout, const { stato, timbraturaApertaId }, const handleTimbra
+   🔗 COLLEGAMENTI: Usa -> [ Sidebar.jsx, MainContent.jsx, MainOperativeView.jsx, CompaniesContent.jsx, GestioneAziendeAdminView.jsx, OfferteContent.jsx... ]
+   ------------------------------------------------
+
+📄 FILE: DettagliCantiereView.jsx
+   📍 Percorso: apps\gestionale\src\DettagliCantiereView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DettagliCantiereView, const cantiere, const unsubscribe, const subcantieriData, const handleStatoChange
+   🔗 COLLEGAMENTI: Usa -> [ firestore, shared-ui, shared-core, AggiungiSubcantiereForm.jsx, CantiereContabilita.jsx ]
+   ------------------------------------------------
+
+📄 FILE: FormBuilder.jsx
+   📍 Percorso: apps\gestionale\src\FormBuilder.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FormBuilder, const addSection, const handleSectionTitleChange, const addField, const handleFieldChange
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, ThemeCustomizer.jsx ]
+   ------------------------------------------------
+
+📄 FILE: FormRenderer.jsx
+   📍 Percorso: apps\gestionale\src\FormRenderer.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FormRenderer, const handleSelectTemplate, const handleInputChange, const handleSaveRapportino
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, ThemeCustomizer.jsx ]
+   ------------------------------------------------
+
+📄 FILE: GestioneOperativaView.jsx
+   📍 Percorso: apps\gestionale\src\GestioneOperativaView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: MainOperativeView, const availableViews, const availableForms, const authorizedFormDocs, const authorizedFormIds
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, OperativeSidebar.jsx, CantiereDashboard.jsx, AssegnazioniContent.jsx, ReportDashboard.jsx, CantiereReportDashboard.jsx... ]
+   ------------------------------------------------
+
+📄 FILE: ImportClients.jsx
+   📍 Percorso: apps\gestionale\src\ImportExcell\ImportClients.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const loadXLSX, const ImportClients, const checkAndLoadXLSX, const getCompanyIds, const readFile
+   🔗 COLLEGAMENTI: Usa -> [ firestore, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: ImportPersonnel.jsx
+   📍 Percorso: apps\gestionale\src\ImportExcell\ImportPersonnel.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const loadXLSX, const ImportPersonnel, const checkAndLoadXLSX, const getCompanyIds, const readFile
+   🔗 COLLEGAMENTI: Usa -> [ firestore, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: index.jsx
+   📍 Percorso: apps\gestionale\src\index.jsx
+   ⚙️ FUNZIONI/COMPONENTI: App
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, AuthScreen.jsx, DashboardLayout.jsx ]
+   ------------------------------------------------
+
+📄 FILE: main.jsx
+   📍 Percorso: apps\gestionale\src\main.jsx
+   🔗 COLLEGAMENTI: Usa -> [ App.jsx, shared-ui, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: MainContent.jsx
+   📍 Percorso: apps\gestionale\src\MainContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: MainContent, const renderContent
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui, DocumentiContent.jsx, CompaniesContent.jsx, PersonnelContent.jsx, ClientsContent.jsx... ]
+   ------------------------------------------------
+
+📄 FILE: MainOperativeView.jsx
+   📍 Percorso: apps\gestionale\src\MainOperativeView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: MainOperativeView, const availableViews, const availableForms, const authorizedFormDocs, const authorizedFormIds
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, OperativeSidebar.jsx, CantiereDashboard.jsx, AssegnazioniContent.jsx, ReportDashboard.jsx, CantiereReportDashboard.jsx... ]
+   ------------------------------------------------
+
+📄 FILE: OperativeSidebar.jsx
+   📍 Percorso: apps\gestionale\src\OperativeSidebar.jsx
+   ⚙️ FUNZIONI/COMPONENTI: OperativeSidebar
+   🔗 COLLEGAMENTI: Usa -> [ AziendaSelector.jsx, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: PersonnelContent.jsx
+   📍 Percorso: apps\gestionale\src\PersonnelContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: PersonnelContent, const filteredPersonnel, const handleSelectPerson, const handleEditPerson, const handleBackToList
+   🔗 COLLEGAMENTI: Usa -> [ AddPersonnelForm.jsx, ImportPersonnel.jsx, shared-ui, shared-core, PresenzeDashboard.jsx ]
+   ------------------------------------------------
+
+📄 FILE: ProgettiContent.jsx
+   📍 Percorso: apps\gestionale\src\ProgettiContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ProgettiContent
+   ------------------------------------------------
+
+📄 FILE: RapportiniContent.jsx
+   📍 Percorso: apps\gestionale\src\RapportiniContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const RapportiniContent, RapportiniContent;
+   ------------------------------------------------
+
+📄 FILE: RapportiniManager.jsx
+   📍 Percorso: apps\gestionale\src\RapportiniManager.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const RapportiniManager, const authorizedForms, const authorizations, RapportiniManager;
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: RapportinoCompleter.jsx
+   📍 Percorso: apps\gestionale\src\RapportinoCompleter.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const RapportinoCompleter, const fetchTemplate, const fileData, const handleGeneratePdf, const handleInputChange
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, firestore ]
+   ------------------------------------------------
+
+📄 FILE: ReportView.jsx
+   📍 Percorso: apps\gestionale\src\ReportView.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const ReportView, const requestSort, const personnelMap, const sitesMap, const companyMap
+   🔗 COLLEGAMENTI: Usa -> [ shared-core ]
+   ------------------------------------------------
+
+📄 FILE: reportWebVitals.jsx
+   📍 Percorso: apps\gestionale\src\reportWebVitals.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const reportWebVitals, reportWebVitals;
+   ------------------------------------------------
+
+📄 FILE: Sidebar.jsx
+   📍 Percorso: apps\gestionale\src\Sidebar.jsx
+   ⚙️ FUNZIONI/COMPONENTI: Sidebar, const [openGroups, setOpenGroups], const isActiveGroup, const toggleGroup, const handleLogout
+   🔗 COLLEGAMENTI: Usa -> [ auth, shared-core, AziendaSelector.jsx, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: SubCantiereForm.jsx
+   📍 Percorso: apps\gestionale\src\SubCantiereForm.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const SubCantiereForm, const fetchCantiereData, const handleSave, SubCantiereForm;
+   🔗 COLLEGAMENTI: Usa -> [ firestore, shared-ui, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: ThemeCustomizer.jsx
+   📍 Percorso: apps\gestionale\src\ThemeCustomizer.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const ThemeCustomizer, ThemeCustomizer;
+   🔗 COLLEGAMENTI: Usa -> [ shared-ui ]
+   ------------------------------------------------
+
+####################################################
+📦 AREA: APPS/APP-ESTERNA/SRC
+####################################################
+
+📄 FILE: App.jsx
+   📍 Percorso: apps\app-esterna\src\App.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const handleLogout
+   🔗 COLLEGAMENTI: Usa -> [ auth, shared-core, LoginScreen, MainAppContent ]
+   ------------------------------------------------
+
+📄 FILE: App.test.js
+   📍 Percorso: apps\app-esterna\src\App.test.js
+   🔗 COLLEGAMENTI: Usa -> [ App ]
+   ------------------------------------------------
+
+📄 FILE: AppRecover.js
+   📍 Percorso: apps\app-esterna\src\AppRecover.js
+   ⚙️ FUNZIONI/COMPONENTI: const LoginScreen, const handleLogin, const RegistrationScreen, const handleRegister, const DocumentModal
+   🔗 COLLEGAMENTI: Usa -> [ app, auth, firestore, storage ]
+   ------------------------------------------------
+
+📄 FILE: AppTest2 - Copia.js
+   📍 Percorso: apps\app-esterna\src\AppTest2 - Copia.js
+   ⚙️ FUNZIONI/COMPONENTI: const handleLogin, App;
+   🔗 COLLEGAMENTI: Usa -> [ auth, useAuthentication, GestoreMask, TecnicoMask, AmministratoreMask, firebaseConfig ]
+   ------------------------------------------------
+
+📄 FILE: AppTest2.js
+   📍 Percorso: apps\app-esterna\src\AppTest2.js
+   ⚙️ FUNZIONI/COMPONENTI: const handleLogin, App;
+   🔗 COLLEGAMENTI: Usa -> [ auth, useAuthentication, GestoreMask, TecnicoMask, AmministratoreMask, firebaseConfig ]
+   ------------------------------------------------
+
+📄 FILE: ActionButtons.jsx
+   📍 Percorso: apps\app-esterna\src\components\ActionButtons.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ActionButtons
+   ------------------------------------------------
+
+📄 FILE: AgendaContainer.jsx
+   📍 Percorso: apps\app-esterna\src\components\AgendaContainer.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AgendaContainer, const handleCloseModal, const handleDayClick, const handleEventClick, const handleOpenAddModal
+   🔗 COLLEGAMENTI: Usa -> [ shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: AssegnazioniMagazzino.jsx
+   📍 Percorso: apps\app-esterna\src\components\AssegnazioniMagazzino.jsx
+   ⚙️ FUNZIONI/COMPONENTI: AssegnazioniMagazzino
+   ------------------------------------------------
+
+📄 FILE: DipendenteMask.jsx
+   📍 Percorso: apps\app-esterna\src\components\DipendenteMask.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DipendenteMask, const nuoveAssegnazioniDaConfermare, const handleAction, const handleConferma, const handleRestituzione
+   🔗 COLLEGAMENTI: Usa -> [ MaskLayout.jsx, AssegnazioniMagazzino.jsx ]
+   ------------------------------------------------
+
+📄 FILE: DocumentModal.jsx
+   📍 Percorso: apps\app-esterna\src\components\DocumentModal.jsx
+   ⚙️ FUNZIONI/COMPONENTI: DocumentModal
+   ------------------------------------------------
+
+📄 FILE: FormRenderer.jsx
+   📍 Percorso: apps\app-esterna\src\components\FormRenderer.jsx
+   ⚙️ FUNZIONI/COMPONENTI: FormRenderer, const handleSelectTemplate, const template, const handleInputChange, const handleSaveForm
+   🔗 COLLEGAMENTI: Usa -> [ firestore, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: GestioneOperativaScreen.jsx
+   📍 Percorso: apps\app-esterna\src\components\GestioneOperativaScreen.jsx
+   ⚙️ FUNZIONI/COMPONENTI: GestioneOperativaScreen, const usersMap, const cantieriMap, const companyMap, const formatDate
+   🔗 COLLEGAMENTI: Usa -> [ firestore, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: LoginScreen.jsx
+   📍 Percorso: apps\app-esterna\src\components\LoginScreen.jsx
+   ⚙️ FUNZIONI/COMPONENTI: LoginScreen, const handleLogin
+   🔗 COLLEGAMENTI: Usa -> [ auth, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: MaskLayout.jsx
+   📍 Percorso: apps\app-esterna\src\components\MaskLayout.jsx
+   ⚙️ FUNZIONI/COMPONENTI: MaskLayout, const statoCorrente, const mieRichiesteFerie, const dpiDaFirmare, const handleCheckIn
+   ------------------------------------------------
+
+📄 FILE: PrepostoMask.jsx
+   📍 Percorso: apps\app-esterna\src\components\PrepostoMask.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const openFilePicker, const getCurrentLocation, PrepostoMask, const mieAssegnazioni, const upcomingEvents
+   🔗 COLLEGAMENTI: Usa -> [ ActionButtons.jsx, MaskLayout.jsx, AssegnazioniMagazzino.jsx, DocumentModal.jsx, SopralluogoFormScreen.jsx ]
+   ------------------------------------------------
+
+📄 FILE: PresenzeDashboard.jsx
+   📍 Percorso: apps\app-esterna\src\components\PresenzeDashboard.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const getDaysInMonth, const toDayString, const calcolaOre, PresenzeDashboard, const { dipendentiAzienda, giorniDelMese, righeTabella }
+   ------------------------------------------------
+
+📄 FILE: ReportScreen.jsx
+   📍 Percorso: apps\app-esterna\src\components\ReportScreen.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ReportScreen, const availableTemplates, const authorizedFormIds, const fetchPreposto
+   🔗 COLLEGAMENTI: Usa -> [ FormRenderer, firestore, shared-core ]
+   ------------------------------------------------
+
+📄 FILE: ReportTecnicoScreen.jsx
+   📍 Percorso: apps\app-esterna\src\components\ReportTecnicoScreen.jsx
+   ⚙️ FUNZIONI/COMPONENTI: ReportTecnicoScreen, const availableForms, const permessiPerQuestaAzienda, const idAmmessi, const moduliFiltrati
+   ------------------------------------------------
+
+📄 FILE: SimpleGridTest.jsx
+   📍 Percorso: apps\app-esterna\src\components\SimpleGridTest.jsx
+   ⚙️ FUNZIONI/COMPONENTI: SimpleGridTest
+   ------------------------------------------------
+
+📄 FILE: SopralluogoFormScreen.jsx
+   📍 Percorso: apps\app-esterna\src\components\SopralluogoFormScreen.jsx
+   ⚙️ FUNZIONI/COMPONENTI: SopralluogoFormScreen, const handleSubmit
+   🔗 COLLEGAMENTI: Usa -> [ shared-core,  Importa il renderer "stupido ]
+   ------------------------------------------------
+
+📄 FILE: TecnicoMask.jsx
+   📍 Percorso: apps\app-esterna\src\components\TecnicoMask.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const openFilePicker, const getCurrentLocation, TecnicoMask, const nuoveAssegnazioniDaConfermare, const upcomingEvents
+   🔗 COLLEGAMENTI: Usa -> [ MaskLayout.jsx, DocumentModal.jsx, SopralluogoFormScreen.jsx, ReportScreen.jsx, ReportTecnicoScreen.jsx ]
+   ------------------------------------------------
+
+📄 FILE: index.jsx
+   📍 Percorso: apps\app-esterna\src\index.jsx
+   🔗 COLLEGAMENTI: Usa -> [ App.jsx, shared-core, shared-ui ]
+   ------------------------------------------------
+
+📄 FILE: MainAppContent.jsx
+   📍 Percorso: apps\app-esterna\src\MainAppContent.jsx
+   ⚙️ FUNZIONI/COMPONENTI: MainAppContent
+   🔗 COLLEGAMENTI: Usa -> [ shared-core, PrepostoMask, TecnicoMask, DipendenteMask.jsx ]
+   ------------------------------------------------
+
+📄 FILE: reportWebVitals.jsx
+   📍 Percorso: apps\app-esterna\src\reportWebVitals.jsx
+   ⚙️ FUNZIONI/COMPONENTI: const reportWebVitals, reportWebVitals;
+   ------------------------------------------------
+
+📄 FILE: TestStile.jsx
+   📍 Percorso: apps\app-esterna\src\TestStile.jsx
+   ⚙️ FUNZIONI/COMPONENTI: TestStile
+   ------------------------------------------------
+
+📄 FILE: ThemeCustomizer.jsx
+   📍 Percorso: apps\app-esterna\src\ThemeCustomizer.jsx
+   ⚙️ FUNZIONI/COMPONENTI: colorClasses, ThemeProvider, const ThemeCustomizer, ThemeCustomizer;
+   ------------------------------------------------

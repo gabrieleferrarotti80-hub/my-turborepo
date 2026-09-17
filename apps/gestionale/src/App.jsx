@@ -1,7 +1,11 @@
 import React from 'react';
 import { useFirebaseData } from 'shared-core';
 import { AuthScreen } from './AuthScreen.jsx';
-import { DashboardLayout } from './DashboardLayout.jsx'; // Assicurati che l'import sia corretto { }
+import { DashboardLayout } from './DashboardLayout.jsx'; 
+
+// 🌟 IMPORTA IL NUOVO PORTALE CLIENTI
+// (Assicurati che il percorso sia corretto. Se lo hai salvato nella cartella components:)
+import { CustomerPortal } from './components/CustomerPortal'; 
 
 const LoadingScreen = () => (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -10,28 +14,34 @@ const LoadingScreen = () => (
 );
 
 export const App = () => {
-    // ✅ MODIFICA: Includiamo loadingData
-    const { user, loadingAuth, loadingData } = useFirebaseData();
+    // 🌟 MODIFICA: Ora estraiamo anche il 'userRole' dal database
+    const { user, loadingAuth, loadingData, userRole } = useFirebaseData();
 
     console.log('--- RENDER App.jsx ---', { 
         loadingAuth: loadingAuth, 
-        // ✅ Aggiunta loadingData al log
         loadingData: loadingData, 
-        user: !!user 
+        user: !!user,
+        ruolo: userRole // Log utilissimo per vedere al volo chi sta entrando
     });
 
     // 1. Attesa (Autenticazione O Caricamento Iniziale dei Dati)
-    // Dobbiamo aspettare che entrambi i flag siano falsi PRIMA di decidere.
     if (loadingAuth || loadingData) {
         return <LoadingScreen />;
     }
 
     // 2. Utente Loggato (Auth e Dati OK)
     if (user) {
+        
+        // 🌟 IL BIVIO MAGICO: Se è un cliente, vede SOLO il suo portale
+        if (userRole === 'cliente') {
+            return <CustomerPortal />;
+        }
+        
+        // Per tutti gli altri (proprietario, amministrazione, operai, ecc...)
         return <DashboardLayout />;
     } 
     
-    // 3. Utente Disconnesso (Auth e Dati OK, ma user nullo)
+    // 3. Utente Disconnesso
     else {
         return <AuthScreen />;
     }

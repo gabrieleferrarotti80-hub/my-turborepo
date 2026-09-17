@@ -7,6 +7,7 @@ import { clientSchema } from '../data/schemas.js';
 
 // ✅ CORREZIONE: Aggiunto 'user' per ottenere il companyID corretto
 export const useClientsManager = (db, user) => {
+    console.log("👥 [DEBUG useClientsManager] Hook inizializzato. Valore DB:", db);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [isError, setIsError] = useState(false);

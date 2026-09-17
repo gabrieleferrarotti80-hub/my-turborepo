@@ -24,7 +24,10 @@ const externalAppCollections = [
     'forms', // <-- ❗ ASSICURATI CHE SIA QUI
     'aziendeForm', // <-- ❗ E ANCHE QUI
     'statoCorrente',
-    'userPresenze'
+    'userPresenze',
+    'ordini_acquisto',
+    'richieste_ferie',
+    'assegnazioniMagazzino',
 ];
 
 root.render(

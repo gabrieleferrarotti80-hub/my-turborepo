@@ -1,57 +1,99 @@
 import React from 'react';
-import { ArrowLeftIcon, PlusCircleIcon, WrenchScrewdriverIcon, ArchiveBoxIcon } from '@heroicons/react/24/outline';
-// 🛑 RIMOSSO: import { useTheme } from 'shared-ui';
+import { 
+    ClipboardDocumentCheckIcon, 
+    ArrowPathIcon, 
+    WrenchScrewdriverIcon,
+    PlusCircleIcon,
+    ArchiveBoxIcon,
+    ArrowLeftIcon
+} from '@heroicons/react/24/outline';
 
 const PRIMARY_COLOR_TEXT = 'text-indigo-600';
 
-// ✅ CORREZIONE: Usa l'export nominato
-export const AssegnazioniMenuMagazzino = ({ setLocalView, onBack }) => {
-    // 🛑 RIMOSSO: const { primaryColor, colorClasses } = useTheme();
-
+export const AssegnazioniMenuMagazzino = ({ 
+    setLocalView, 
+    onBack,
+    conteggioGuasti = 0, 
+    conteggioRiconsegne = 0 
+}) => {
+    
+    // Configurazione delle card del menu
     const menuItems = [
         {
-            label: 'Assegna Attrezzatura',
+            title: 'Nuova Assegnazione',
             view: 'assegna-attrezzatura',
             icon: PlusCircleIcon,
-            description: 'Crea una nuova assegnazione per un dipendente.'
+            desc: 'Assegna attrezzature o DPI ai dipendenti.',
+            colorClass: 'bg-blue-500 text-blue-600'
         },
         {
-            label: 'Gestisci Assegnazioni',
+            title: 'Registro Assegnazioni',
             view: 'gestisci-assegnazioni',
-            icon: WrenchScrewdriverIcon,
-            description: 'Visualizza e gestisci le assegnazioni attive.'
+            icon: ClipboardDocumentCheckIcon,
+            desc: 'Visualizza e gestisci le dotazioni attive.',
+            colorClass: 'bg-indigo-500 text-indigo-600'
         },
         {
-            label: 'Archivio Assegnazioni',
-            view: 'archivio',
+            title: 'Gestione Resi',
+            view: 'riconsegne',
+            icon: ArrowPathIcon,
+            desc: 'Accetta le restituzioni dagli operatori.',
+            colorClass: 'bg-green-500 text-green-600',
+            count: conteggioRiconsegne
+        },
+        {
+            title: 'Gestione Guasti',
+            view: 'guasti',
+            icon: WrenchScrewdriverIcon,
+            desc: 'Gestisci segnalazioni di rotture o furti.',
+            colorClass: 'bg-orange-500 text-orange-600',
+            count: conteggioGuasti
+        },
+        {
+            title: 'Archivio Storico',
+            view: 'archivio', // Assicurati di avere questa vista o rimuovila se non serve
             icon: ArchiveBoxIcon,
-            description: 'Consulta lo storico delle assegnazioni passate.'
+            desc: 'Consulta lo storico delle assegnazioni passate.',
+            colorClass: 'bg-gray-500 text-gray-600'
         }
     ];
 
     return (
         <div className="animate-fade-in p-6 bg-white rounded-2xl shadow-xl">
-            {/* ✅ CLASSE STATICA per il testo e l'hover underline */}
             <button onClick={onBack} className={`flex items-center gap-2 ${PRIMARY_COLOR_TEXT} mb-6 hover:underline`}>
                 <ArrowLeftIcon className="h-4 w-4" />
                 Torna al Magazzino
             </button>
 
             <h2 className="text-3xl font-bold text-gray-800 mb-2">Menu Assegnazioni</h2>
-            <p className="text-gray-500 mb-8">Seleziona l'operazione che desideri eseguire.</p>
+            <p className="text-gray-500 mb-8">Gestisci le dotazioni, i rientri e le manutenzioni.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {menuItems.map((item) => (
-                    <button
+                    <div 
                         key={item.view}
                         onClick={() => setLocalView(item.view)}
-                        className="p-6 bg-gray-50 rounded-lg text-left hover:shadow-lg hover:bg-white transition-all duration-300"
+                        className="bg-white p-6 rounded-xl shadow-md border border-gray-100 cursor-pointer hover:shadow-lg hover:border-indigo-100 transition-all group relative overflow-hidden"
                     >
-                        {/* ✅ CLASSE STATICA per l'icona */}
-                        <item.icon className={`h-8 w-8 mb-3 ${PRIMARY_COLOR_TEXT}`} />
-                        <h3 className="font-bold text-lg text-gray-800">{item.label}</h3>
-                        <p className="text-sm text-gray-600">{item.description}</p>
-                    </button>
+                        {/* Icona Sfondo */}
+                        <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity`}>
+                            <item.icon className={`h-24 w-24 ${item.colorClass.split(' ')[1]}`} />
+                        </div>
+                        
+                        <div className="flex justify-between items-start mb-4">
+                            <div className={`p-3 rounded-lg bg-opacity-10 ${item.colorClass.split(' ')[0]} bg-opacity-20`}>
+                                <item.icon className={`h-8 w-8 ${item.colorClass.split(' ')[1]}`} />
+                            </div>
+                            {item.count > 0 && (
+                                <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-bounce">
+                                    {item.count} Richieste
+                                </span>
+                            )}
+                        </div>
+                        
+                        <h3 className="text-xl font-bold text-gray-800 mb-1">{item.title}</h3>
+                        <p className="text-sm text-gray-500">{item.desc}</p>
+                    </div>
                 ))}
             </div>
         </div>

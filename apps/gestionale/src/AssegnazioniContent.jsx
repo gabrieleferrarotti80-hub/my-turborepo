@@ -1,85 +1,150 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { ArrowLeftIcon, PencilSquareIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/solid';
-import { useFirebaseData, useAssegnazioniCantieriManager } from 'shared-core';
+import { useAssegnazioniCantiereManager } from 'shared-core';
+import { AssegnaCantiereForm } from './AssegnaCantiereForm.jsx';
 
-export const AssegnazioniContent = ({ onNavigate }) => {
-    // 1. Recupera i dati dal contesto, con valori di default per prevenire errori
+export const AssegnazioniContent = ({ 
+    onNavigate, 
+    data, 
+    loadingData, 
+    db, 
+    user, 
+    userAziendaId, 
+    userRole 
+}) => {
+    
+    // 1. Estrai i dati dalle props
     const {
-        db,
-        user,
-        userAziendaId,
         assegnazioniCantieri = [],
         cantieri = [],
         users = [],
         companies = [],
-        userRole,
-        loading
-    } = useFirebaseData();
+        attrezzature = [],
+        subcantieri = []
+    } = data || {}; 
 
-    // 2. Inizializza l'hook manager per le azioni di scrittura
-    const { deleteAssegnazioneCantiere } = useAssegnazioniCantieriManager(db, user, userAziendaId);
+    // 2. Inizializza l'hook manager
+    const { createAssegnazioneCantiere, updateAssegnazioneCantiere, deleteAssegnazioneCantiere } = 
+        useAssegnazioniCantiereManager(db, user, userAziendaId, users, cantieri, subcantieri); // ✅ AGGIUNTO 'subcantieri'
 
+    // 3. Gestione stato interno
+    const [view, setView] = useState('list'); // 'list', 'add', 'edit'
+    const [selectedAssignment, setSelectedAssignment] = useState(null);
     const isOwner = userRole === 'proprietario';
     const canWrite = !(isOwner && !userAziendaId);
 
-    // 3. Funzioni helper per "tradurre" gli ID in nomi leggibili
+    // --- 4. FUNZIONI HELPER ---
+
     const getSiteName = (siteId) => {
         const site = cantieri.find(s => s.id === siteId);
-        // Assumiamo che il campo del nome del cantiere sia 'nome'
-        return site ? site.nomeCantiere: 'Cantiere Sconosciuto';
+        return site ? site.nomeCantiere : 'Cantiere Sconosciuto';
     };
 
-    const getPersonnelNames = (personnelIds) => {
-        return (personnelIds || []).map(id => {
-            const person = users.find(p => p.id === id);
-            return person ? `${person.nome} ${person.cognome}` : 'Sconosciuto';
-        }).join(', ');
-    };
-
-    const getSupervisorName = (userId) => {
+    const getUserNameById = (userId) => {
+        if (!userId) return 'N/D';
         const person = users.find(p => p.id === userId);
         return person ? `${person.nome} ${person.cognome}` : 'Sconosciuto';
+    };
+    
+    const getPrepostoNameFromTeam = (teamArray) => {
+        if (!Array.isArray(teamArray) || teamArray.length === 0) {
+            return 'Nessun Team';
+        }
+        const preposto = teamArray.find(member => member.ruolo === 'preposto');
+        
+        if (preposto && preposto.nome) {
+            return preposto.nome;
+        } else if (preposto && preposto.userId) {
+            return getUserNameById(preposto.userId);
+        }
+        return 'Preposto Non Trovato';
+    };
+
+    const getOperaiNamesFromTeam = (teamArray) => {
+        if (!Array.isArray(teamArray) || teamArray.length === 0) {
+            return '';
+        }
+        return teamArray
+            .filter(member => member.ruolo === 'operaio')
+            .map(op => op.nome || getUserNameById(op.userId))
+            .join(', ');
     };
     
     const getCompanyName = (companyId) => {
         if (!companyId) return 'Nessuna Azienda';
         const company = companies.find(c => c.id === companyId);
-        // Usa 'companyName' come verificato in precedenza
         return company ? company.companyName : 'Azienda Sconosciuta';
     };
 
-    // 4. Filtra i dati da visualizzare in base al ruolo
+    const formatOptionalDate = (date) => {
+        if (!date) return 'N/D';
+        // Converte Timestamp di Firestore o Data
+        const d = date.toDate ? date.toDate() : new Date(date);
+        if (isNaN(d.getTime())) return 'N/D';
+        return d.toLocaleDateString('it-IT');
+    };
+
+    // 5. Filtra i dati
     const filteredAssignments = (isOwner && !userAziendaId)
         ? assegnazioniCantieri
         : assegnazioniCantieri.filter(assignment => assignment.companyID === userAziendaId);
 
-    // 5. Gestori di eventi per le azioni dell'utente
+    // --- 6. HANDLERS ---
     const handleCreate = () => {
-        if (canWrite) {
-            onNavigate('assign-cantiere');
-        } else {
-            alert("Seleziona un'azienda per poter creare una nuova assegnazione.");
-        }
+        setSelectedAssignment(null); // Assicura che non ci siano dati iniziali
+        setView('add');
     };
 
     const handleEdit = (assignment) => {
-        onNavigate('edit-assign-cantiere', assignment);
+        console.log("[AssegnazioniContent] Azione: handleEdit. Dati selezionati:", assignment);
+        setSelectedAssignment(assignment); // Imposta l'assegnazione da modificare
+        setView('edit');
     };
 
-    const handleDelete = async (assignmentId) => {
+   const handleDelete = async (assignment) => { // ✅ Ricevi l'intero oggetto
         if (window.confirm("Sei sicuro di voler eliminare questa assegnazione?")) {
-            await deleteAssegnazioneCantiere(assignmentId);
+            // ✅ Passa sia assignment.id che assignment.faseId
+            await deleteAssegnazioneCantiere(assignment.id, assignment.faseId);
         }
     };
 
-    if (loading) {
+    const handleBackToList = () => {
+        setView('list');
+        setSelectedAssignment(null); // Pulisci la selezione
+    };
+    
+    const handleSaveSuccess = (message) => {
+        alert(message);
+        setView('list');
+        setSelectedAssignment(null); // Pulisci la selezione
+    };
+
+    // --- 7. RENDER ---
+    if (loadingData) {
         return <div className="p-4 text-center">Caricamento in corso...</div>;
     }
 
-    // 6. RENDER del componente
+    console.log(`[AssegnazioniContent] DEBUG Render: Vista corrente = ${view}`);
+
+    // VISTA FORM (Creazione o Modifica)
+    if (view === 'add' || view === 'edit') {
+        return (
+            <AssegnaCantiereForm
+                onBack={handleBackToList}
+                onSaveSuccess={handleSaveSuccess}
+                db={db}
+                user={user}
+                userAziendaId={userAziendaId}
+                data={data}
+                initialData={selectedAssignment} // Passa i dati per la modifica
+            />
+        );
+    }
+    
+    // VISTA LISTA (Default)
     return (
         <div className="p-4 md:p-6 lg:p-8 space-y-6">
-            <button onClick={() => onNavigate('operative-data')} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors duration-200">
+            <button onClick={() => onNavigate('menu')} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors duration-200">
                 <ArrowLeftIcon className="h-5 w-5" />
                 <span>Torna alla Gestione Operativa</span>
             </button>
@@ -110,7 +175,9 @@ export const AssegnazioniContent = ({ onNavigate }) => {
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantiere</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preposto</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Operai</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Assegnazione</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Inizio</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Fine</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modificato Da</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Azioni</th>
                             </tr>
                         </thead>
@@ -121,13 +188,19 @@ export const AssegnazioniContent = ({ onNavigate }) => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getCompanyName(assignment.companyID)}</td>
                                     )}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{getSiteName(assignment.cantiereId)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getSupervisorName(assignment.prepostoId)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getPersonnelNames(assignment.operaiIds)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getPrepostoNameFromTeam(assignment.team)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getOperaiNamesFromTeam(assignment.team)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {/* Logica robusta per la data: gestisce sia Timestamp che oggetti Date */}
-                                        {assignment.dataAssegnazione?.toDate ? 
-                                            assignment.dataAssegnazione.toDate().toLocaleDateString('it-IT') : 
-                                            (assignment.dataAssegnazione?.toLocaleDateString('it-IT') || 'N/D')
+                                        {formatOptionalDate(assignment.dataInizio)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {formatOptionalDate(assignment.dataFine)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {/* Mostra chi ha modificato (se esiste), altrimenti chi ha creato */}
+                                        {assignment.updatedBy ? 
+                                            `${getUserNameById(assignment.updatedBy)} (Mod.)` : 
+                                            getUserNameById(assignment.assegnatoDaId)
                                         }
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -135,7 +208,7 @@ export const AssegnazioniContent = ({ onNavigate }) => {
                                             <button onClick={() => handleEdit(assignment)} className="text-indigo-600 hover:text-indigo-900" title="Modifica">
                                                 <PencilSquareIcon className="h-5 w-5" />
                                             </button>
-                                            <button onClick={() => handleDelete(assignment.id)} className="text-red-600 hover:text-red-900" title="Elimina">
+                                           <button onClick={() => handleDelete(assignment)} className="text-red-600 hover:text-red-900" title="Elimina">
                                                 <TrashIcon className="h-5 w-5" />
                                             </button>
                                         </div>

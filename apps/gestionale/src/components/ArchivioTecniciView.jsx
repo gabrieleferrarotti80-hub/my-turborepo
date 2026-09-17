@@ -1,18 +1,11 @@
 // src/components/ArchivioTecniciView.jsx
 
 import React from 'react';
-// highlight-start
-import { useFirebaseData } from 'shared-core';; // Percorso relativo aggiornato
-// highlight-end
+// 🛑 RIMUOVI useFirebaseData
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 
-// <-- 1. Aggiunta la prop onEdit
-const ArchivioTecniciView = ({ onBack, onEdit }) => {
-    const { reportTecnico, loadingData } = useFirebaseData();
-
-    if (loadingData) {
-        return <div className="text-center p-8">Caricamento...</div>;
-    }
+// --- ✅ 1. Ricevi 'reportTecnico' come prop ---
+const ArchivioTecniciView = ({ onBack, onEdit, reportTecnico }) => {
 
     return (
         <div className="space-y-6 animate-fade-in">

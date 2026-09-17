@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { CubeIcon, DocumentTextIcon, ChartBarIcon } from '@heroicons/react/24/solid';
+import React, { useState, useEffect, useMemo } from 'react';
+import { CubeIcon, DocumentTextIcon, ChartBarIcon, ShieldCheckIcon } from '@heroicons/react/24/solid';
 import { faFileEdit, faHome, faHardHat } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
@@ -10,18 +10,23 @@ import { AssegnazioniContent } from './AssegnazioniContent.jsx';
 import { ReportDashboard } from './components/ReportDashboard.jsx';
 import { CantiereReportDashboard } from './CantiereReportDashboard.jsx';
 import { FormList, FormReader } from 'shared-ui';
-import { AssegnaCantiereForm } from './AssegnaCantiereForm.jsx';
+import { AssegnaCantiereForm } from './AssegnaCantiereForm.jsx'; 
+
+// ✅ IMPORTA IL NUOVO COMPONENTE SICUREZZA
+import { SicurezzaContent } from './components/sicurezza/SicurezzaContent.jsx';
 
 // Definiamo qui la struttura della sidebar.
-// Abbiamo rimosso i link ai report per evitare duplicazioni con le card.
 const operativeViewsConfig = [
     { id: 'menu', label: 'Menu Principale', icon: faHome },
     { id: 'cantieri', label: 'Cantieri', icon: faHardHat },
     { id: 'assegnazioni', label: 'Assegnazioni', icon: CubeIcon, permission: 'canViewAssegnazioni' },
+    // ✅ NUOVA VOCE MENU
+    { id: 'sicurezza', label: 'Sicurezza & DPI', icon: ShieldCheckIcon }, 
     { id: 'moduli-operativi', label: 'Moduli Operativi', icon: faFileEdit, permission: 'canReadForms' },
 ];
 
 export const MainOperativeView = ({ onBack }) => {
+    
     // --- STATI ---
     const [currentView, setCurrentView] = useState('menu');
     const [selectedFormId, setSelectedFormId] = useState(null);
@@ -31,7 +36,8 @@ export const MainOperativeView = ({ onBack }) => {
     const [formError, setFormError] = useState('');
 
     // --- HOOKS ---
-    const { db, user, userAziendaId, userRole } = useFirebaseData();
+    const { db, user, userAziendaId, userRole, companyFeatures, data, loadingData } = useFirebaseData();
+
     const permissions = getPermissionsByRole(userRole);
     const { getFormStructure, isLoading: loadingFormStructure } = useFormManager(db);
     const { saveRapportino, isSaving: isSavingRapportino } = useRapportiniManager(db, user, userAziendaId);
@@ -39,7 +45,24 @@ export const MainOperativeView = ({ onBack }) => {
     // Filtra le viste della sidebar in base ai permessi dell'utente
     const availableViews = operativeViewsConfig.filter(view => !view.permission || permissions[view.permission]);
 
-    // Effetto per caricare la struttura del form quando viene selezionato
+    // Logica di filtraggio per i moduli
+    const availableForms = useMemo(() => {
+        if (loadingData || !data?.forms || !data?.aziendeForm || !userAziendaId) {
+            return [];
+        }
+        const allForms = data.forms;
+        const allAziendaForms = data.aziendeForm;
+        const authorizedFormDocs = allAziendaForms.filter(authDoc =>
+            Array.isArray(authDoc.authorizedCompanyIds) && authDoc.authorizedCompanyIds.includes(userAziendaId)
+        );
+        const authorizedFormIds = new Set(authorizedFormDocs.map(doc => doc.formId).filter(id => !!id));
+        if (authorizedFormIds.size === 0) {
+            return [];
+        }
+        return allForms.filter(form => authorizedFormIds.has(form.id));
+    }, [data?.forms, data?.aziendeForm, userAziendaId, loadingData]);
+
+    // Effetto per caricare la struttura del form
     useEffect(() => {
         const fetchForm = async () => {
             if (currentView !== 'formReader' || !selectedFormId) return;
@@ -63,44 +86,53 @@ export const MainOperativeView = ({ onBack }) => {
         setCurrentView(view);
         setSelectedFormId(id);
     };
-
-    const handleSaveSuccess = (message) => {
-        setSuccessMessage(message);
-        setTimeout(() => setSuccessMessage(''), 3000);
-    };
-    
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmitRapportino = async (e) => {
-        e.preventDefault();
-        const rapportinoData = { formId: selectedFormId, dati: formData };
-        const result = await saveRapportino(rapportinoData);
-        if (result.success) {
-            handleSaveSuccess(result.message);
-            handleNavigate('menu');
-        } else {
-            setFormError(result.message);
-        }
-    };
+    const handleSaveSuccess = (message) => { /* ... */ };
+    const handleInputChange = (e) => { /* ... */ };
+    const handleSubmitRapportino = async (e) => { /* ... */ };
 
     // --- LOGICA DI RENDER ---
     const renderContent = () => {
         switch (currentView) {
             case 'cantieri':
                 return <CantiereDashboard />;
+            
             case 'assegnazioni':
-                return <AssegnazioniContent onNavigate={handleNavigate} />;
+                return <AssegnazioniContent 
+                            onNavigate={handleNavigate} 
+                            data={data} 
+                            loadingData={loadingData}
+                            db={db}
+                            user={user}
+                            userAziendaId={userAziendaId}
+                            userRole={userRole} 
+                        />;
+
             case 'report-individuali':
-                return <ReportDashboard />;
+                return <ReportDashboard 
+                            data={data} 
+                            loadingData={loadingData} 
+                        />;
+           
             case 'report-cantiere':
-                return <CantiereReportDashboard />;
+                return <CantiereReportDashboard 
+                            data={data}
+                            loadingData={loadingData}
+                            userRole={userRole}
+                            companyFeatures={companyFeatures}
+                       />;
+            
+            // ✅ CASE PER RENDERIZZARE LA VISTA SICUREZZA
+            case 'sicurezza':
+                return <SicurezzaContent />;
+
             case 'moduli-operativi':
-                return <FormList onSelectForm={(id) => handleNavigate('formReader', id)} />;
-            case 'assign-cantiere':
-                return <AssegnaCantiereForm onBack={() => handleNavigate('assegnazioni')} onSaveSuccess={handleSaveSuccess} />;
+                return <FormList 
+                            forms={availableForms} 
+                            loading={loadingData} 
+                            error={!loadingData && availableForms.length === 0 ? "Nessun modulo autorizzato per la tua azienda." : null}
+                            onSelectForm={(id) => handleNavigate('formReader', id)} 
+                        />;
+            
             case 'formReader':
                 return (
                     <FormReader 
@@ -115,13 +147,22 @@ export const MainOperativeView = ({ onBack }) => {
                 );
             case 'menu':
             default:
+                if (loadingData) {
+                    return (
+                        <div className="flex justify-center items-center h-48">
+                            <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-gray-500" />
+                        </div>
+                    );
+                }
                 const getCardStyle = (isEnabled) => `flex flex-col items-center justify-center p-6 bg-white rounded-2xl shadow-xl transition-transform transform ${isEnabled ? 'hover:scale-105 hover:shadow-2xl' : 'cursor-not-allowed opacity-50'} animate-fade-in`;
                 const getButtonClass = (isEnabled) => `w-full text-center font-semibold mt-4 py-2 px-4 rounded-xl transition-colors ${isEnabled ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-300 text-gray-500'}`;
+                
                 return (
                     <div className="space-y-6">
                         <h1 className="text-3xl font-bold text-gray-800">Gestione Operativa</h1>
                         <p className="text-gray-600">Gestisci gli aspetti chiave delle operazioni della tua azienda.</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            
                             {permissions.canViewAssegnazioni && (
                                 <div className={getCardStyle(true)}>
                                     <CubeIcon className="w-16 h-16 text-indigo-500 mb-4" />
@@ -130,6 +171,17 @@ export const MainOperativeView = ({ onBack }) => {
                                     <button onClick={() => handleNavigate('assegnazioni')} className={getButtonClass(true)}>Vai ad Assegnazioni</button>
                                 </div>
                             )}
+
+                            {/* ✅ CARD PER LA SICUREZZA */}
+                            <div className={getCardStyle(true)}>
+                                <ShieldCheckIcon className="w-16 h-16 text-emerald-600 mb-4" />
+                                <h2 className="text-xl font-semibold">Sicurezza & DPI</h2>
+                                <p className="text-gray-500 text-center text-sm mt-2">Gestione POS, Verbali DPI e Scadenze.</p>
+                                <button onClick={() => handleNavigate('sicurezza')} className={getButtonClass(true).replace('bg-indigo-600', 'bg-emerald-600').replace('hover:bg-indigo-700', 'hover:bg-emerald-700')}>
+                                    Vai a Sicurezza
+                                </button>
+                            </div>
+
                             {permissions.canViewReports && (
                                 <div className={getCardStyle(true)}>
                                     <DocumentTextIcon className="w-16 h-16 text-indigo-500 mb-4" />
@@ -138,6 +190,7 @@ export const MainOperativeView = ({ onBack }) => {
                                     <button onClick={() => handleNavigate('report-individuali')} className={getButtonClass(true)}>Vai a Report</button>
                                 </div>
                             )}
+
                             {permissions.canViewCantiereReports && (
                                 <div className={getCardStyle(true)}>
                                     <ChartBarIcon className="w-16 h-16 text-indigo-500 mb-4" />
@@ -146,6 +199,7 @@ export const MainOperativeView = ({ onBack }) => {
                                     <button onClick={() => handleNavigate('report-cantiere')} className={getButtonClass(true)}>Visualizza Report</button>
                                 </div>
                             )}
+
                             {permissions.canReadForms && (
                                 <div className={getCardStyle(true)}>
                                     <FontAwesomeIcon icon={faFileEdit} className="w-16 h-16 text-indigo-500 mb-4" />

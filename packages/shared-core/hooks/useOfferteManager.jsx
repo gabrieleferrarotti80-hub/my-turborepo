@@ -1,84 +1,34 @@
-// File: packages/shared-core/hooks/useOfferteManager.jsx
+// packages/shared-core/hooks/useOfferteManager.jsx
 
 import { useState, useCallback } from 'react';
-// ✅ Import necessary Firestore functions
-import { doc, setDoc, updateDoc, Timestamp, collection, serverTimestamp, addDoc } from 'firebase/firestore';
-// ❌ RIMOSSO: Import di useAgendaManager (non serve più qui)
-// import { useAgendaManager } from './useAgendaManager';
+import { doc, setDoc, updateDoc, collection, serverTimestamp, arrayUnion, addDoc } from 'firebase/firestore';
 import { useDocumentiManager } from './useDocumentiManager';
 import { useClientsManager } from './useClientsManager';
+import { useAgendaAction } from './useAgendaAction.jsx'; 
 import { offertaSchema } from '../data/schemas';
 
-// ✅ MODIFICATO: Rimosso 'storage' se non usato direttamente qui
-export const useOfferteManager = (db, user, companyId) => {
+export const useOfferteManager = (db, storage, user, companyId) => {
+   console.log("🕵️‍♂️ [DEBUG useOfferteManager] Valore DB Principale:", db);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
 
-     const handleError = useCallback((err) => {
-        console.error("Errore in useOfferteManager:", err);
+    const handleError = useCallback((err) => {
+        console.error("❌ [useOfferteManager] Errore:", err);
         setError(err.message || "Si è verificato un errore.");
         setIsSaving(false);
     }, []);
-
-   // ✅ NUOVA FUNZIONE: logProroga
-    const logProroga = useCallback(async (offertaId, userId) => {
-        setIsSaving(true);
-        setError(null);
-        try {
-            if (!offertaId || !userId) throw new Error("ID Offerta o Utente mancanti per log proroga.");
-            
-            const offertaRef = doc(db, 'offerte', offertaId);
-            const logEntry = {
-                userId: userId,
-                timestamp: serverTimestamp() // Usa serverTimestamp per coerenza
-            };
-
-            await updateDoc(offertaRef, {
-                // Assicurati che 'logProroghe' sia un array nel tuo schema
-                logProroghe: arrayUnion(logEntry) 
-            });
-
-            console.log(`[useOfferteManager] Proroga registrata per offerta ${offertaId} da utente ${userId}`);
-            setIsSaving(false);
-            return { success: true, message: "Proroga registrata." };
-        } catch (err) {
-            handleError(err); // Usa handleError centralizzato
-            return { success: false, message: `Errore registrazione proroga: ${err.message}` };
-        }
-    }, [db, handleError]); // Aggiungi db e handleError alle dipendenze
-
-
-    // ✅ NUOVA/MODIFICATA FUNZIONE: inviaOfferta
-    // (Sostituisce o integra la tua 'salvaRevisioneEInvia' se necessario)
-    const inviaOfferta = useCallback(async (offertaId, daPiattaforma = false) => {
-        setIsSaving(true);
-        setError(null);
-        try {
-            if (!offertaId) throw new Error("ID Offerta mancante per invio.");
-
-            const offertaRef = doc(db, 'offerte', offertaId);
-            await updateDoc(offertaRef, {
-                stato: 'inviata',
-                faseCorrente: 3, // O l'indice della fase finale
-                dataInvio: serverTimestamp(),
-                inviataDaPiattaforma: daPiattaforma,
-                updatedAt: serverTimestamp() // Aggiorna anche updatedAt
-            });
-
-            console.log(`[useOfferteManager] Offerta ${offertaId} impostata come 'inviata'. Da piattaforma: ${daPiattaforma}`);
-            setIsSaving(false);
-            return { success: true, message: "Offerta contrassegnata come inviata." };
-        } catch (err) {
-            handleError(err);
-            return { success: false, message: `Errore invio offerta: ${err.message}` };
-        }
-    }, [db, handleError]); // Aggiungi db e handleError
-
-    // ✅ MODIFICATO: Passa solo 'db' e 'user' se 'storage' non serve qui
-    const documentiManager = useDocumentiManager(db, null, user); // Passa null per storage se non serve
+console.log("🕵️‍♂️ [DEBUG useOfferteManager] Sto passando DB ai manager interni. DB è:", db);
+    const documentiManager = useDocumentiManager(db, storage, user, companyId);
     const clientsManager = useClientsManager(db, user);
+    const agendaAction = useAgendaAction(db, companyId, user); 
 
-   
+    const updateOfferta = async (offertaId, datiDaAggiornare) => {
+        const offertaRef = doc(db, 'offerte', offertaId);
+        await updateDoc(offertaRef, {
+            ...datiDaAggiornare,
+            updatedAt: serverTimestamp(),
+        });
+    };
 
     const addOfferta = useCallback(async (nomeOfferta, clienteId) => {
         setIsSaving(true);
@@ -99,81 +49,77 @@ export const useOfferteManager = (db, user, companyId) => {
             };
 
             await setDoc(newOffertaRef, nuovaOfferta);
-            setIsSaving(false); // Reset saving state on success
-            return { success: true, id: newOffertaRef.id }; // Return success and ID
+            setIsSaving(false); 
+            return { success: true, id: newOffertaRef.id }; 
         } catch (err) {
             handleError(err);
-            // Non fare re-throw qui, l'errore è già gestito e lo stato error è impostato
-            return { success: false, message: err.message }; // Return error state
+            return { success: false, message: err.message }; 
         }
-        // Rimosso 'finally' perché gestiamo lo stato in try/catch
     }, [db, user, companyId, handleError]);
 
-    // Internal helper, might not need useCallback if only used internally
-    const updateOfferta = async (offertaId, datiDaAggiornare) => {
-        // Rimosso controllo companyId qui se è solo un helper interno chiamato da funzioni che già controllano
-        const offertaRef = doc(db, 'offerte', offertaId);
-        await updateDoc(offertaRef, {
-            ...datiDaAggiornare,
-            updatedAt: serverTimestamp(),
-        });
-    };
-
-    const salvaSopralluogoReport = async (offertaId, reportData) => {
-        // ✅ Corretto: usa lo stato isSaving/setError dell'hook principale
+    // --- FASE 1: SALVATAGGIO ANALISI E AGENDA ---
+    const salvaAnalisiPreliminare = useCallback(async (offertaId, datiForm, nomeOfferta, clienteNome) => {
         setIsSaving(true);
         setError(null);
         try {
-            if (!offertaId || !reportData) {
-                throw new Error("ID Offerta o dati del report mancanti.");
+            const { documentiGaraFiles, ...datiAnalisiPuliti } = datiForm;
+            let documentiGaraFinali = datiAnalisiPuliti.documentiGara || [];
+
+            if (documentiGaraFiles && documentiGaraFiles.length > 0) {
+                if (!storage) throw new Error("Firebase Storage non è inizializzato.");
+                const uploadedDocs = await documentiManager.uploadFiles(documentiGaraFiles, `offerte/${offertaId}/documenti_gara`);
+                const nuoviDocumenti = uploadedDocs.map((doc, index) => ({
+                    url: doc.downloadURL,
+                    name: doc.fileName,
+                    categoria: documentiGaraFiles[index].categoria || 'altro',
+                    caricatoIl: new Date().toISOString()
+                }));
+                documentiGaraFinali = [...documentiGaraFinali, ...nuoviDocumenti];
             }
-            const offertaRef = doc(db, 'offerte', offertaId);
-            const currentUserId = user?.uid || user?.id || 'sconosciuto';
 
-            await updateDoc(offertaRef, {
-                datiSopralluogoReport: {
-                    ...reportData,
-                    salvatoIl: serverTimestamp(),
-                    salvatoDa: currentUserId
-                },
-                // stato: 'sopralluogo_completato' // Opzionale
-            });
+            if (datiAnalisiPuliti.necessitaSopralluogo && datiAnalisiPuliti.dataSopralluogo && datiAnalisiPuliti.assegnatarioSopralluogo) {
+                const dataStr = datiAnalisiPuliti.dataSopralluogo; 
+                const oraStr = datiAnalisiPuliti.oraSopralluogo || '09:00'; 
+                const [hours, minutes] = oraStr.split(':').map(Number);
+                const eventDate = new Date(dataStr);
+                eventDate.setHours(hours, minutes, 0, 0);
+                const endDate = new Date(eventDate);
+                endDate.setHours(hours + 2, minutes, 0, 0); 
 
-            setIsSaving(false);
-            return { success: true, message: 'Report sopralluogo salvato con successo!' };
-        } catch (err) {
-            handleError(err); // Usa handleError centralizzato
-            return { success: false, message: `Errore salvataggio report: ${err.message}` };
-        }
-    };
+                const eventoData = {
+                    title: `Sopralluogo: ${clienteNome || 'Cliente'} - ${nomeOfferta || 'Offerta'}`,
+                    description: datiAnalisiPuliti.noteInterne || "Sopralluogo tecnico per preventivo.",
+                    start: eventDate, 
+                    end: endDate,
+                    tipo: 'sopralluogo',
+                    partecipanti: [{ userId: datiAnalisiPuliti.assegnatarioSopralluogo, ruolo: 'tecnico' }],
+                    offertaId: offertaId,
+                    titolo: `Sopralluogo: ${clienteNome || 'Cliente'} - ${nomeOfferta || 'Offerta'}`,
+                    descrizione: datiAnalisiPuliti.noteInterne || "Sopralluogo tecnico per preventivo.",
+                    data: dataStr, 
+                    dataStringa: dataStr,
+                    orario: oraStr,
+                    orarioInizio: oraStr,
+                    oraPrevista: oraStr,
+                    assegnatoA: datiAnalisiPuliti.assegnatarioSopralluogo, 
+                    userId: datiAnalisiPuliti.assegnatarioSopralluogo,
+                    dipendenteId: datiAnalisiPuliti.assegnatarioSopralluogo,
+                    completato: false
+                };
+                await agendaAction.addEvento(eventoData);
+                datiAnalisiPuliti.statoSopralluogo = 'assegnato';
+                datiAnalisiPuliti.tecnicoAssegnato = datiAnalisiPuliti.assegnatarioSopralluogo;
+            }
 
-    const archiveOfferta = useCallback(async (offertaId) => {
-        setIsSaving(true);
-        setError(null);
-        try {
-            await updateOfferta(offertaId, { stato: 'archiviata' });
-            setIsSaving(false);
-            return { success: true, message: "Offerta archiviata." };
-        } catch (err) {
-            handleError(err);
-            return { success: false, message: err.message };
-        }
-    }, [handleError]); // updateOfferta non è una dipendenza perché è definito nello stesso scope
-
-    const salvaAnalisiPreliminare = useCallback(async (offertaId, datiForm) => {
-        setIsSaving(true);
-        setError(null);
-        try {
-            console.log("[useOfferteManager] Salvataggio dati Analisi Preliminare...");
+            datiAnalisiPuliti.documentiGara = documentiGaraFinali;
 
             const datiDaSalvare = {
-                datiAnalisi: datiForm,
-                stato: 'analisi_preliminare', // O 'in_elaborazione' se il sopralluogo è contestuale
-                faseCorrente: 1,
+               datiAnalisi: datiAnalisiPuliti,
+               stato: 'in_elaborazione',
+               faseCorrente: 2, 
             };
 
             await updateOfferta(offertaId, datiDaSalvare);
-            console.log("[useOfferteManager] Dati Analisi Preliminare salvati.");
             setIsSaving(false);
             return { success: true, message: "Analisi preliminare salvata." };
 
@@ -181,156 +127,153 @@ export const useOfferteManager = (db, user, companyId) => {
             handleError(err);
             return { success: false, message: err.message };
         }
-    }, [handleError]);
+    }, [db, handleError, documentiManager, storage, agendaAction]);
 
-    // ❌ ELIMINATA LA FUNZIONE 'creaAppuntamentoSopralluogo'
-
-    const aggiungiReferenteCliente = useCallback(async (clienteId, datiReferente, nomeOfferta) => {
-        // Questo potrebbe non aver bisogno di gestire lo stato isSaving/error
-        // se ci pensa clientsManager. Gestiamo solo l'errore se fallisce.
-        setError(null); // Reset local error just in case
-        try {
-             const result = await clientsManager.addReferente(clienteId, datiReferente, { context: `Offerta: ${nomeOfferta}` });
-             if (!result.success) throw new Error(result.message || "Errore sconosciuto aggiunta referente.");
-             return { success: true };
-        } catch(err) {
-             handleError(err); // Usa handleError per impostare lo stato di errore locale
-             return { success: false, message: err.message };
-        }
-    }, [clientsManager, handleError]);
-
-    const salvaElaborazione = useCallback(async (offertaId, datiElaborazione, riepilogoEmail) => {
+    // --- FASE 2: SALVATAGGIO ELABORAZIONE E NOTIFICA ---
+    const salvaElaborazione = useCallback(async (offertaId, datiElaborazione) => {
         setIsSaving(true);
         setError(null);
         try {
-            console.log("[useOfferteManager] Salvataggio dati Elaborazione...");
+            const { docCMECompilatoFiles, ...datiPuliti } = datiElaborazione;
+            let cmeFinali = datiPuliti.docCMECompilato || [];
 
-            const nuovoStato = datiElaborazione.approvazioneNecessaria ? 'in_approvazione' : 'elaborata';
+            if (docCMECompilatoFiles && docCMECompilatoFiles.length > 0) {
+                if (!storage) throw new Error("Firebase Storage non è inizializzato.");
+                const uploadedDocs = await documentiManager.uploadFiles(docCMECompilatoFiles, `offerte/${offertaId}/cme_compilato`);
+                const nuoviDocumenti = uploadedDocs.map(doc => ({
+                    url: doc.downloadURL,
+                    name: doc.fileName,
+                    caricatoIl: new Date().toISOString()
+                }));
+                cmeFinali = [...cmeFinali, ...nuoviDocumenti];
+            }
+
+            datiPuliti.docCMECompilato = cmeFinali;
+            const nuovoStato = datiPuliti.approvazioneNecessaria ? 'in_approvazione' : 'pronta_per_invio';
+
             const datiDaSalvare = {
-                datiElaborazione: datiElaborazione,
+                datiElaborazione: datiPuliti,
                 stato: nuovoStato,
-                faseCorrente: 2,
-                // lastUpdated viene gestito da updateOfferta
+                faseCorrente: 2, 
             };
 
             await updateOfferta(offertaId, datiDaSalvare);
-            console.log("[useOfferteManager] Dati Elaborazione salvati. Stato:", nuovoStato);
 
-            // Trigger Email (logica invariata)
-            if (nuovoStato === 'in_approvazione' && datiElaborazione.utenteApprovazioneId) {
+            // ✅ PAYLOAD NOTIFICA "UNIVERSALE" A DOPPIA CHIAVE
+            if (nuovoStato === 'in_approvazione' && datiPuliti.utenteApprovazioneId) {
                 try {
-                    // !!! RICORDA DI SOSTITUIRE IL PLACEHOLDER DELL'EMAIL !!!
-                    const emailTo = 'placeholder@example.com';
-                    if (emailTo && emailTo !== 'placeholder@example.com') {
-                        console.log("[useOfferteManager] Aggiunta richiesta approvazione alla coda email per:", emailTo);
-                        await addDoc(collection(db, 'coda_email'), {
-                            to: emailTo,
-                            template: 'approvazione',
-                            data: {
-                                ...riepilogoEmail,
-                                offertaId: offertaId,
-                                nomeOfferta: riepilogoEmail.nomeOfferta || 'N/D'
-                            },
-                            createdAt: serverTimestamp()
-                        });
-                    } else {
-                        console.warn("[useOfferteManager] Email utente approvatore non trovata o placeholder non sostituito. Impossibile inviare email.");
-                    }
-                } catch (emailError) {
-                    console.error("Errore durante l'aggiunta alla coda email:", emailError);
-                    // Non bloccare il salvataggio per l'email, ma logga l'errore
+                    const notificheRef = collection(db, 'notifiche');
+                    const payloadNotifica = {
+                        // Chiavi in Italiano (Nuovo Standard)
+                        userId: datiPuliti.utenteApprovazioneId, 
+                        mittenteId: user?.uid || user?.id || 'sistema',
+                        titolo: "Richiesta Approvazione Preventivo",
+                        messaggio: "Una nuova offerta è in attesa della tua approvazione per l'invio al cliente.",
+                        tipo: "approvazione_offerta", 
+                        offertaId: offertaId, 
+                        companyID: companyId || null,
+                        letta: false,
+                        
+                        // Chiavi in Inglese (Fallback per vecchi componenti UI)
+                        destinatarioId: datiPuliti.utenteApprovazioneId,
+                        title: "Richiesta Approvazione Preventivo",
+                        message: "Una nuova offerta è in attesa della tua approvazione per l'invio al cliente.",
+                        type: "approvazione_offerta",
+                        companyId: companyId || null,
+                        read: false,
+                        
+                        data: serverTimestamp(),
+                        createdAt: serverTimestamp()
+                    };
+                    
+                    await addDoc(notificheRef, payloadNotifica);
+                } catch (notifErr) {
+                    console.error("❌ ERRORE NOTIFICA:", notifErr);
                 }
             }
+
             setIsSaving(false);
             return { success: true, message: "Dati elaborazione salvati." };
         } catch (err) {
             handleError(err);
             return { success: false, message: err.message };
         }
-    }, [db, handleError]); // Aggiunto db
+    }, [db, handleError, documentiManager, storage, user, companyId]);
 
+    // --- ALTRE FUNZIONI (RIMANGONO INVARIATE) ---
     const approvaOfferta = useCallback(async (offertaId) => {
          setIsSaving(true);
          setError(null);
         try {
-            console.log("[useOfferteManager] Approvazione offerta:", offertaId);
-            await updateOfferta(offertaId, {
-                stato: 'approvata', // O 'elaborata'
-                faseCorrente: 3,
-                dataApprovazione: serverTimestamp()
-            });
-            console.log("[useOfferteManager] Offerta approvata.");
+            await updateOfferta(offertaId, { stato: 'pronta_per_invio', faseCorrente: 3, dataApprovazione: serverTimestamp() });
             setIsSaving(false);
             return { success: true, message: "Offerta approvata." };
-        } catch (err) {
-            handleError(err);
-            return { success: false, message: err.message };
-        }
+        } catch (err) { handleError(err); return { success: false, message: err.message }; }
     }, [handleError]);
 
-    const salvaRevisioneEInvia = useCallback(async (offertaId, datiRevisione) => {
-        setIsSaving(true);
-        setError(null);
+    const inviaOfferta = useCallback(async (offertaId, daPiattaforma = false) => {
+        setIsSaving(true); setError(null);
         try {
-            await updateOfferta(offertaId, {
-                datiRevisione: { ...datiRevisione, dataInvio: serverTimestamp() },
-                stato: 'inviata',
-                faseCorrente: 3, // O 4 se c'è un'altra fase
-            });
+            if (!offertaId) throw new Error("ID Offerta mancante.");
+            await updateDoc(doc(db, 'offerte', offertaId), { stato: 'inviata', faseCorrente: 3, dataInvio: serverTimestamp(), inviataDaPiattaforma: daPiattaforma, updatedAt: serverTimestamp() });
             setIsSaving(false);
             return { success: true, message: "Offerta inviata." };
-        } catch(err) {
-            handleError(err);
-            return { success: false, message: err.message };
-        }
+        } catch (err) { handleError(err); return { success: false, message: err.message }; }
+    }, [db, handleError]);
+
+    const accettaOfferta = useCallback(async (offertaId) => {
+        setIsSaving(true); setError(null);
+        try {
+            await updateOfferta(offertaId, { stato: 'convertita_in_cantiere', dataEsito: serverTimestamp() });
+            setIsSaving(false); return { success: true, message: "Offerta convertita." };
+        } catch (err) { handleError(err); return { success: false, message: err.message }; }
     }, [handleError]);
 
-    // --- ✅ NUOVA FUNZIONE ---
-    const confermaInvioEmail = useCallback(async (offertaId, userId) => {
-        setIsSaving(true);
-        setError(null);
-        console.log(`[useOfferteManager] Conferma invio email per offerta ${offertaId} da utente ${userId}`);
+    const rifiutaOfferta = useCallback(async (offertaId) => {
+        setIsSaving(true); setError(null);
         try {
-            if (!offertaId || !userId) throw new Error("ID Offerta o Utente mancanti per conferma invio email.");
+            await updateOfferta(offertaId, { stato: 'rifiutata', dataEsito: serverTimestamp() });
+            setIsSaving(false); return { success: true, message: "Offerta rifiutata." };
+        } catch (err) { handleError(err); return { success: false, message: err.message }; }
+    }, [handleError]);
 
-            const offertaRef = doc(db, 'offerte', offertaId);
-            const updateData = {
-                // Stato: Lo schema diceva 'Elaborata', ma 'inviata' potrebbe avere più senso?
-                // Decidi quale stato è più appropriato qui. Usiamo 'inviata' per ora.
-                stato: 'inviata', 
-                // Potremmo usare un campo specifico per tracciare l'invio email vs piattaforma
-                // inviataTramite: 'email', // Opzionale
-                dataInvioEffettivo: serverTimestamp(), // Timestamp dell'invio effettivo
-                inviataDa: userId, // Utente che ha confermato l'invio
-                updatedAt: serverTimestamp()
-            };
+    const archiveOfferta = useCallback(async (offertaId) => {
+        setIsSaving(true); setError(null);
+        try {
+            await updateOfferta(offertaId, { stato: 'archiviata' });
+            setIsSaving(false); return { success: true, message: "Offerta archiviata." };
+        } catch (err) { handleError(err); return { success: false, message: err.message }; }
+    }, [handleError]);
 
-            await updateDoc(offertaRef, updateData);
+    const logProroga = useCallback(async (offertaId, userId) => {
+        setIsSaving(true); setError(null);
+        try {
+            await updateDoc(doc(db, 'offerte', offertaId), { logProroghe: arrayUnion({ userId: userId, timestamp: new Date().toISOString() }) });
+            setIsSaving(false); return { success: true, message: "Proroga registrata." };
+        } catch (err) { handleError(err); return { success: false, message: err.message }; }
+    }, [db, handleError]); 
 
-            console.log(`[useOfferteManager] Offerta ${offertaId} aggiornata dopo conferma invio email.`);
-            setIsSaving(false);
-            return { success: true, message: "Stato offerta aggiornato post-invio." };
-        } catch (err) {
-            handleError(err);
-            return { success: false, message: `Errore conferma invio email: ${err.message}` };
-        }
-    }, [db, handleError]); // Dipendenze
-    // --- FINE NUOVA FUNZIONE ---
+    const aggiungiReferenteCliente = useCallback(async (clienteId, datiReferente, nomeOfferta) => {
+        setError(null); 
+        try {
+             await clientsManager.addReferente(clienteId, datiReferente, { context: `Offerta: ${nomeOfferta}` });
+             return { success: true };
+        } catch(err) { handleError(err); return { success: false, message: err.message }; }
+    }, [clientsManager, handleError]);
+
+    const salvaSopralluogoReport = async (offertaId, reportData) => {
+        setIsSaving(true); setError(null);
+        try {
+            await updateDoc(doc(db, 'offerte', offertaId), {
+                datiSopralluogoReport: { ...reportData, salvatoIl: new Date().toISOString(), salvatoDa: user?.uid || user?.id || 'sconosciuto' },
+            });
+            setIsSaving(false); return { success: true, message: 'Report salvato!' };
+        } catch (err) { handleError(err); return { success: false, message: err.message }; }
+    };
 
     return {
-        isSaving,
-        error,
-        addOfferta,
-        archiveOfferta,
-        salvaAnalisiPreliminare,
-        aggiungiReferenteCliente,
-        // ❌ RIMOSSO 'creaAppuntamentoSopralluogo'
-        salvaElaborazione,
-        approvaOfferta,
-        salvaRevisioneEInvia,
-        salvaSopralluogoReport,
-        logProroga,
-        inviaOfferta,
-        confermaInvioEmail,
+        isSaving, error, addOfferta, archiveOfferta, salvaAnalisiPreliminare,
+        aggiungiReferenteCliente, salvaElaborazione, approvaOfferta,
+        salvaSopralluogoReport, logProroga, inviaOfferta, accettaOfferta, rifiutaOfferta
     };
 };

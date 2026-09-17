@@ -1,15 +1,21 @@
 // src/components/ReportDashboard.jsx
 
 import React, { useState } from 'react';
+// 🛑 RIMUOVIAMO GLI IMPORT NON USATI (se ce n'erano)
 import ReportView from '../ReportView.jsx';
 import ArchivioTecniciView from './ArchivioTecniciView.jsx';
 import EditReportForm from './EditReportForm.jsx';
-import EditReportTecnicoForm from './EditReportTecnicoForm.jsx'; // <-- 1. Import del nuovo form (da creare)
-import { UserGroupIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/solid';
+import EditReportTecnicoForm from './EditReportTecnicoForm.jsx';
+import { UserGroupIcon, WrenchScrewdriverIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 
-export const ReportDashboard = () => {
+// --- ✅ 1. Accetta TUTTE le props dal genitore ---
+export const ReportDashboard = ({ data, loadingData, userRole, companyFeatures }) => {
     const [view, setView] = useState({ mode: 'menu', data: null });
     const [searchTerm, setSearchTerm] = useState('');
+
+    // --- ✅ 2. Estrai i dati necessari (questo era già corretto) ---
+    const reports = data?.reports || [];
+    const reportTecnico = data?.reportTecnico || [];
 
     // --- Funzioni per Report Squadre ---
     const handleEditReport = (reportToEdit) => {
@@ -19,7 +25,7 @@ export const ReportDashboard = () => {
         setView({ mode: 'squadre', data: null });
     };
 
-    // --- 2. Aggiunte nuove funzioni per Report Tecnici ---
+    // --- Funzioni per Report Tecnici ---
     const handleEditReportTecnico = (reportToEdit) => {
         setView({ mode: 'edit_tecnico', data: reportToEdit });
     };
@@ -27,9 +33,18 @@ export const ReportDashboard = () => {
         setView({ mode: 'tecnici', data: null });
     };
 
+    // --- ✅ 3. Controllo di caricamento (già corretto) ---
+    if (loadingData) {
+        return (
+            <div className="flex justify-center items-center h-48">
+                <ArrowPathIcon className="animate-spin h-8 w-8 text-indigo-500" />
+                <span className="ml-4 text-gray-500">Caricamento report...</span>
+            </div>
+        );
+    }
+
     // --- Logica di Rendering ---
 
-    // Vista per Modifica Report Squadra
     if (view.mode === 'edit_squadra') {
         return <EditReportForm 
             reportData={view.data} 
@@ -37,7 +52,6 @@ export const ReportDashboard = () => {
         />;
     }
 
-    // <-- 3. Aggiunta logica di rendering per Modifica Report Tecnico -->
     if (view.mode === 'edit_tecnico') {
         return <EditReportTecnicoForm
             reportData={view.data}
@@ -45,22 +59,27 @@ export const ReportDashboard = () => {
         />;
     }
 
-    // Vista per Lista Report Squadre
+    // --- ✅ 4. CORREZIONE VISTA SQUADRE ---
     if (view.mode === 'squadre') {
         return <ReportView 
             onBack={() => setView({ mode: 'menu', data: null })}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
-            onEdit={handleEditReport} 
+            onEdit={handleEditReport}
+            // --- Aggiungi le props mancanti ---
+            reports={reports} 
+            userRole={userRole}
+            companyFeatures={companyFeatures}
         />;
     }
 
-    // Vista per Lista Report Tecnici
+    // --- ✅ 5. CORREZIONE VISTA TECNICI (causa del crash) ---
     if (view.mode === 'tecnici') {
-        // <-- 4. Collegato il pulsante "Modifica" alla sua funzione -->
         return <ArchivioTecniciView 
             onBack={() => setView({ mode: 'menu', data: null })} 
             onEdit={handleEditReportTecnico}
+            // --- Aggiungi la prop mancante ---
+            reportTecnico={reportTecnico}
         />;
     }
 
@@ -68,8 +87,7 @@ export const ReportDashboard = () => {
     return (
         <div className="p-8 space-y-6 animate-fade-in">
             <h1 className="text-4xl font-bold text-gray-800">Archivio Report</h1>
-            <p className="text-gray-600">Seleziona la categoria di report che desideri consultare.</p>
-            
+            {/* ... (resto del menu invariato) ... */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                 <button 
                     onClick={() => setView({ mode: 'squadre', data: null })}
@@ -92,4 +110,3 @@ export const ReportDashboard = () => {
         </div>
     );
 };
-

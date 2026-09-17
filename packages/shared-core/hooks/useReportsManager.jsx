@@ -2,13 +2,12 @@ import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from '
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState } from 'react';
 
-// ✅ CORREZIONE: L'hook ora accetta tutte le dipendenze necessarie
 export const useReportsManager = (db, storage, user, userAziendaId) => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
 
-    // ✅ AGGIUNTA: La funzione per creare un nuovo report
-    const addReport = async (cantiereId, reportType, note, file, location, isLavoroTerminato = false) => {
+    // ✅ AGGIUNTO IL 7° PARAMETRO: datiRiepilogoJson
+    const addReport = async (cantiereId, reportType, note, file, location, isLavoroTerminato = false, datiRiepilogoJson = null) => {
         if (!user || !userAziendaId) {
             return { success: false, message: "Utente non valido o azienda non selezionata." };
         }
@@ -35,16 +34,20 @@ export const useReportsManager = (db, storage, user, userAziendaId) => {
                 location,
                 createdAt: serverTimestamp(),
                 companyID: userAziendaId,
-                 userId: user?.uid || user?.id,
-};
-           
+                userId: user?.uid || user?.id,
+            };
 
-            // Aggiungi il campo condizionale se il lavoro è terminato
+            // Aggiungi il flag di chiusura lavori
             if (isLavoroTerminato) {
                 newReport.chiusuraLavori = true;
             }
 
-            // 3. Salva il documento
+            // 🚀 IL PEZZO MANCANTE: Salviamo il JSON del Wizard nel database!
+            if (datiRiepilogoJson) {
+                newReport.datiRiepilogo = datiRiepilogoJson;
+            }
+
+            // 3. Salva il documento in Firebase
             await addDoc(collection(db, 'reports'), newReport);
 
             setIsSaving(false);
@@ -80,6 +83,5 @@ export const useReportsManager = (db, storage, user, userAziendaId) => {
         }
     };
 
-    // ✅ CORREZIONE: Ora esportiamo tutte le funzioni necessarie
     return { addReport, updateReport, deleteReport, isSaving, error };
 };

@@ -6,6 +6,7 @@ import { collection, addDoc, serverTimestamp, doc, deleteDoc,query,where,getDocs
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export const useDocumentiManager = (db, storage, user, companyId) => {
+    console.log("📁 [DEBUG useDocumentiManager] Hook inizializzato. Valore DB:", db);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 

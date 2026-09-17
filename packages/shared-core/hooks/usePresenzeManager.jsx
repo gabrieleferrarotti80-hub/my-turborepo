@@ -1,9 +1,6 @@
-// File: packages/shared-core/hooks/usePresenzeManager.jsx
-
 import { useState } from 'react';
-import { collection, addDoc, doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, serverTimestamp, Timestamp, query, where, getDocs } from 'firebase/firestore';
 
-// Funzione helper per convertire date (da un input) in Timestamp
 const toTimestamp = (dateString) => {
     return Timestamp.fromDate(new Date(dateString));
 };
@@ -12,14 +9,12 @@ export const usePresenzeManager = (db, user, userAziendaId) => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
 
-    const UID = user?.uid;
+    const UID = user?.uid || user?.id;
 
-    // Funzione generica per creare un nuovo stato
     const creaNuovoStato = async (stato, datiAggiuntivi = {}) => {
         setIsSaving(true);
         setError(null);
         if (!UID || !userAziendaId) {
-            console.error("--- 🕵️ DEBUG HOOK ---", { UID, userAziendaId }); // Log di errore
             setError(new Error("Utente non valido"));
             setIsSaving(false);
             return { success: false, message: "Utente non valido" };
@@ -30,7 +25,8 @@ export const usePresenzeManager = (db, user, userAziendaId) => {
                 userId: UID,
                 companyID: userAziendaId,
                 stato: stato,
-               timestampInizio: Timestamp.now(),
+                // 🌟 FIX: Usa il Timestamp sincronizzato del device per evitare latenze e "buchi" di null in rete
+                timestampInizio: Timestamp.now(), 
                 timestampFine: null,
                 ...datiAggiuntivi
             });
@@ -43,19 +39,70 @@ export const usePresenzeManager = (db, user, userAziendaId) => {
         }
     };
 
-    // 1. INIZIA LAVORO
     const checkIn = async () => {
-        return await creaNuovoStato('lavoro');
+        setIsSaving(true);
+        setError(null);
+        
+        if (!UID || !userAziendaId) {
+            setIsSaving(false);
+            return { success: false, message: "Utente non valido" };
+        }
+
+        try {
+            // Chiusura Automatica a mezzanotte dei giorni precedenti (Mantenuto)
+            const qAperte = query(
+                collection(db, 'presenze'),
+                where('userId', '==', UID),
+                where('timestampFine', '==', null)
+            );
+            const snapshot = await getDocs(qAperte);
+            
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+
+            const chiusurePromises = [];
+            
+            snapshot.forEach((docSnap) => {
+                const dataPresenza = docSnap.data();
+                if (dataPresenza.stato === 'lavoro' && dataPresenza.timestampInizio) {
+                    const dInizio = dataPresenza.timestampInizio.toDate();
+                    if (dInizio < oggi) {
+                        const fineForzata = new Date(dInizio);
+                        fineForzata.setHours(23, 59, 59, 999);
+                        chiusurePromises.push(
+                            updateDoc(doc(db, 'presenze', docSnap.id), {
+                                timestampFine: Timestamp.fromDate(fineForzata),
+                                note: (dataPresenza.note ? dataPresenza.note + " | " : "") + "[Chiusura automatica 23:59]"
+                            })
+                        );
+                    }
+                }
+            });
+
+            if (chiusurePromises.length > 0) {
+                await Promise.all(chiusurePromises);
+            }
+
+            return await creaNuovoStato('lavoro');
+            
+        } catch (err) {
+            console.error("Errore checkIn:", err);
+            setError(err);
+            setIsSaving(false);
+            return { success: false, message: err.message };
+        }
     };
 
-    // 2. TERMINA LAVORO
     const checkOut = async (idStatoCorrente) => {
         setIsSaving(true);
         setError(null);
         try {
             const docRef = doc(db, 'presenze', idStatoCorrente);
             await updateDoc(docRef, {
-                timestampFine: serverTimestamp()
+                // 🌟 FIX: Rimosso serverTimestamp()! 
+                // Usando il tempo di Firebase c'era un istante in cui ritornava 'null' al frontend distruggendo l'App. 
+                // Ora usa il tempo sincronizzato, che chiude la pratica senza latenze.
+                timestampFine: Timestamp.now() 
             });
             setIsSaving(false);
             return { success: true, message: "Lavoro terminato!" };
@@ -66,7 +113,6 @@ export const usePresenzeManager = (db, user, userAziendaId) => {
         }
     };
 
-    // 3. SEGNALA MALATTIA
     const segnalaMalattia = async (dataInizio, dataFine, note = '') => {
         return await creaNuovoStato('malattia', {
             timestampInizio: toTimestamp(dataInizio),
@@ -75,7 +121,6 @@ export const usePresenzeManager = (db, user, userAziendaId) => {
         });
     };
 
-    // 4. SEGNALA INFORTUNIO
     const segnalaInfortunio = async (dataInizio, dataFine, note = '') => {
         return await creaNuovoStato('infortunio', {
             timestampInizio: toTimestamp(dataInizio),
@@ -84,15 +129,10 @@ export const usePresenzeManager = (db, user, userAziendaId) => {
         });
     };
     
-    // 5. SEGNALA PIOGGIA
     const segnalaPioggia = async (note = '') => {
-        return await creaNuovoStato('pioggia', {
-            note: note,
-            // (La pioggia potrebbe finire automaticamente a fine giornata)
-        });
+        return await creaNuovoStato('pioggia', { note: note });
     };
     
-    // 6. PROROGA ASSENZA
     const prorogaAssenza = async (idStatoCorrente, nuovaDataFine, note = '') => {
         setIsSaving(true);
         setError(null);
@@ -100,7 +140,7 @@ export const usePresenzeManager = (db, user, userAziendaId) => {
             const docRef = doc(db, 'presenze', idStatoCorrente);
             await updateDoc(docRef, {
                 dataFinePrevista: toTimestamp(nuovaDataFine),
-                note: note, // Sovrascrive o aggiunge nota
+                note: note, 
                 prorogata: true
             });
             setIsSaving(false);
@@ -111,47 +151,38 @@ export const usePresenzeManager = (db, user, userAziendaId) => {
             return { success: false, message: err.message };
         }
     };
-// 7. SEGNALA ERRORE
-const segnalaErrore = async (nota, dataRiferimento) => {
-    setIsSaving(true);
-    setError(null);
-    if (!UID || !userAziendaId) {
-        setError(new Error("Utente non valido"));
-        setIsSaving(false);
-        return { success: false, message: "Utente non valido" };
-    }
-    const dataRiferimentoTs = (dataRiferimento?.toDate) 
-        ? dataRiferimento  // È già un Timestamp
-        : Timestamp.fromDate(dataRiferimento || new Date()); // Converte da Date
 
-    try {
-        await addDoc(collection(db, 'segnalazioniErrori'), {
-            userId: UID,
-            companyID: userAziendaId,
-            tipo: 'presenze',
-            nota: nota,
-            timestamp: serverTimestamp(), // Data di creazione (OGGI)
-            dataRiferimento: dataRiferimentoTs, // ❗ 3. Data dell'errore (IERI)
-            stato: 'da_gestire'
-        });
-        setIsSaving(false);
-        return { success: true, message: "Segnalazione inviata!" };
-    } catch (err) {
-        setError(err);
-        setIsSaving(false);
-        return { success: false, message: err.message };
-    }
-};
+    const segnalaErrore = async (nota, dataRiferimento) => {
+        setIsSaving(true);
+        setError(null);
+        if (!UID || !userAziendaId) {
+            setError(new Error("Utente non valido"));
+            setIsSaving(false);
+            return { success: false, message: "Utente non valido" };
+        }
+        const dataRiferimentoTs = (dataRiferimento?.toDate) ? dataRiferimento : Timestamp.fromDate(dataRiferimento || new Date()); 
 
-return { 
-    isSaving, 
-    error,
-    checkIn,
-    checkOut,
-    segnalaMalattia,
-    segnalaInfortunio,
-    segnalaPioggia,
-    prorogaAssenza,
-    segnalaErrore // <-- ❗ RITORNA LA NUOVA FUNZIONE
-};
+        try {
+            await addDoc(collection(db, 'segnalazioniErrori'), {
+                userId: UID,
+                companyID: userAziendaId,
+                tipo: 'presenze',
+                nota: nota,
+                timestamp: serverTimestamp(), 
+                dataRiferimento: dataRiferimentoTs, 
+                stato: 'da_gestire'
+            });
+            setIsSaving(false);
+            return { success: true, message: "Segnalazione inviata!" };
+        } catch (err) {
+            setError(err);
+            setIsSaving(false);
+            return { success: false, message: err.message };
+        }
+    };
+
+    return { 
+        isSaving, error, checkIn, checkOut,
+        segnalaMalattia, segnalaInfortunio, segnalaPioggia, prorogaAssenza, segnalaErrore
+    };
 };

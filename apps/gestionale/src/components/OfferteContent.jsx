@@ -1,588 +1,469 @@
-// apps/gestionale/src/components/offerte/OfferteContent.jsx
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { doc, getDoc, updateDoc, collection, serverTimestamp } from 'firebase/firestore'; 
+// ✅ Aggiunto useCantieriManager all'import
+import { useFirebaseData, useOfferteManager, useCantieriManager } from 'shared-core'; 
+import { OffertaWorkspaceView, NuovaOffertaForm } from 'shared-ui'; 
+import { 
+    DocumentPlusIcon, MagnifyingGlassIcon, DocumentTextIcon, ArchiveBoxIcon, PaperAirplaneIcon, 
+    BuildingOfficeIcon, RectangleStackIcon, CheckBadgeIcon, UserGroupIcon, 
+    ViewColumnsIcon, PlusIcon, XMarkIcon, UserPlusIcon, ArrowLeftIcon 
+} from '@heroicons/react/24/outline';
 
-import React, { useState, useCallback, useMemo } from 'react';
-// ✅ Importa useAgendaManager
-import { useFirebaseData, useOfferteManager, useClientsManager, useDocumentiManager, useAgendaManager, getPermissionsByRole } from 'shared-core';
-import { OfferteDashboard, OffertaWorkspaceView, OfferteSidebar, OfferteListView } from 'shared-ui';
-import { AziendaSelector } from '../AziendaSelector';
-import { faHome, faTasks, faArchive, faFileAlt, faCogs, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { WorkspacePrivato } from './workspace-privato/WorkspacePrivato';
 
-export const OfferteContent = ({ onNavigateBack, selectedCompanyId }) => {
-   
-    // ✅ Ottieni l'intero contesto Firebase
-    const firebaseData = useFirebaseData();
-    // Estrai i dati necessari
-    const { db, storage, user, userRole, companyFeatures, data, loadingData } = firebaseData; // Aggiunto loadingData
+export const OfferteContent = () => {
+    const firebaseContext = useFirebaseData();
+    const { data, companyID, userRole, loadingData, user } = firebaseContext;
+    const safeDb = firebaseContext.db || data?.db; 
+    const safeStorage = firebaseContext.storage || data?.storage; 
+    
+    const { offerte = [], clients = [], users = [], forms = [], eventi = [], reports = [], attrezzature = [], fornitori = [], noleggiatori = [], subappaltatori = [] } = data || {};
 
-    const offerte = data?.offerte || [];
-    const clients = data?.clients || [];
-    const personnel = data?.users || [];
+    const { 
+        addOfferta, salvaAnalisiPreliminare, salvaElaborazione, approvaOfferta, archiveOfferta, inviaOfferta, accettaOfferta,
+        rifiutaOfferta, logProroga, aggiungiReferenteCliente, isSaving 
+    } = useOfferteManager(safeDb, safeStorage, user, companyID);
 
-    // --- ✅ AGGIUNGI QUESTA DEFINIZIONE ---
-    // Funzione da passare a useAnalisiFormLogic (anche se attualmente fa solo log)
-    const handleCreaAppuntamentoValidation = useCallback((sopralluogoData) => {
-        console.log("[OfferteContent] Ricevuta validazione per creare appuntamento (dal bottone specifico):", sopralluogoData);
-        // Al momento non fa nulla qui, la creazione avviene in handleAnalisiSubmit
-        // Potresti usarla per mostrare un feedback all'utente
-    }, []); // Non ha dipendenze specifiche se fa solo log
-    // --- FINE AGGIUNTA ---
+    // ✅ Inizializziamo il motore dei cantieri
+    const { addCantiere } = useCantieriManager(safeDb, companyID, data?.companies || []);
 
-    // Logica di filtraggio template (invariata)
-    const availableForms = useMemo(() => {
-        console.log(`[FORMS-LOG] 📌 Inizio calcolo template. Azienda ID: ${selectedCompanyId}`);
-        const allForms = data?.forms || [];
-        const allAziendaForms = data?.aziendeForm || [];
-        console.log(`[FORMS-LOG] 1. Forms totali caricati (data.forms): ${allForms.length}`);
-        console.log(`[FORMS-LOG] 1. Autorizzazioni totali caricate (data.aziendeForm): ${allAziendaForms.length}`);
-        if (!selectedCompanyId || allForms.length === 0) return [];
-        const authorizedFormDocs = allAziendaForms.filter(authDoc =>
-            Array.isArray(authDoc.authorizedCompanyIds) && authDoc.authorizedCompanyIds.includes(selectedCompanyId));
-        console.log(`[FORMS-LOG] 2. Documenti in aziendeForm che autorizzano l'azienda ${selectedCompanyId}: ${authorizedFormDocs.length}`);
-        const authorizedFormIds = new Set(authorizedFormDocs.map(doc => doc.formId).filter(id => !!id));
-        console.log("[FORMS-LOG] 3. Set di ID Form autorizzati (lunghezza):", authorizedFormIds.size);
-        console.log("[FORMS-LOG] 3. ID autorizzati:", Array.from(authorizedFormIds));
-        if (authorizedFormIds.size === 0) return [];
-        const filteredForms = allForms.filter(form => authorizedFormIds.has(form.id));
-        if (filteredForms.length > 0) {
-            console.log(`[FORMS-LOG] 4. Struttura Template Trovato (id/nome):`, { id: filteredForms[0].id, nome: filteredForms[0].nome });
-        }
-        console.log(`[FORMS-LOG] ✅ Trovati ${filteredForms.length} template form autorizzati. FINE LOG`);
-        return filteredForms;
-    }, [data?.forms, data?.aziendeForm, selectedCompanyId]);
+    const currentUserData = useMemo(() => users.find(u => u.id === user?.uid || u.email === user?.email), [users, user]);
 
+    const [viewMode, setViewMode] = useState('list'); 
+    const [macroArea, setMacroArea] = useState('gare'); 
+    const [activeTab, setActiveTab] = useState('tutte'); 
+    const [selectedOfferta, setSelectedOfferta] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
-    // ✅ Inizializza TUTTI i manager necessari
-    const agendaManager = useAgendaManager(firebaseData);
-    const offerteManager = useOfferteManager(db, user, selectedCompanyId); // Passa companyId corretto
-    const clientsManager = useClientsManager(db, user);
-    const documentiManager = useDocumentiManager(db, storage, user, selectedCompanyId); // Passa companyId
-   
+    const [showNewClientModal, setShowNewClientModal] = useState(false);
+    const [newClientData, setNewClientData] = useState({ ragioneSociale: '', partitaIva: '', telefono: '', email: '' });
 
-    // Permissions (invariato)
-    const permissions = getPermissionsByRole(userRole);
-    const isSuperAdmin = userRole === 'proprietario' && !selectedCompanyId;
-    const hasPermission = permissions?.canManageOfferte;
-    const hasFeature = companyFeatures?.['offerte_management'] === true;
-    const isAuthorized = hasPermission && (isSuperAdmin || hasFeature);
-
-    // State (invariato)
-    const [activeOfferta, setActiveOfferta] = useState(null);
-    const [activeView, setActiveView] = useState('principale');
-
-    // Navigation Handlers (invariati)
-    const handleSelectOfferta = useCallback((offerta) => {
-        setActiveOfferta(offerta);
-        let viewToGo = 'analisi';
-        if (offerta.faseCorrente === 2 || ['elaborata', 'in_approvazione', 'approvata'].includes(offerta.stato)) {
-            viewToGo = 'elaborazione';
-        } else if (offerta.faseCorrente === 3 || offerta.stato === 'inviata') {
-            viewToGo = 'invio';
-        }
-        setActiveView(viewToGo);
-    }, []);
-
-    const handleSidebarNavigate = useCallback((viewId) => {
-        if (['principale', 'in_analisi'].includes(viewId)) {
-            setActiveOfferta(null);
-        }
-        setActiveView(viewId);
-    }, []);
-
-    // Action Handlers
-    const handleAddReferente = useCallback(async (clienteId, datiReferente) => {
-        if (!activeOfferta) return { success: false, message: "Nessuna offerta attiva" }; // Aggiunto return
+    const handleSaveNewClient = async () => {
+        if(!newClientData.ragioneSociale) return alert("Inserisci almeno la Ragione Sociale.");
         try {
-            const result = await clientsManager.addReferente(clienteId, datiReferente, { context: `Offerta: ${activeOfferta.nomeOfferta}` });
-            if (!result.success) throw new Error(result.message); // Gestisci fallimento
-            console.log("Nuovo referente aggiunto!");
-            // Potrebbe servire aggiornare stato locale/ri-fetchare
-            return { success: true };
-        } catch (error) {
-             console.error("Errore aggiunta referente:", error);
-             alert(`Errore aggiunta referente: ${error.message}`);
-             return { success: false, message: error.message }; // Restituisci errore
-        }
-    }, [activeOfferta, clientsManager]);
+            const payload = { ...newClientData, companyID: companyID, createdAt: serverTimestamp() };
+            await addDoc(collection(safeDb, 'clients'), payload);
+            setShowNewClientModal(false);
+            setNewClientData({ ragioneSociale: '', partitaIva: '', telefono: '', email: '' });
+            alert("Cliente creato! Ora puoi selezionarlo dal menu a tendina.");
+        } catch (error) { alert("Errore durante la creazione del cliente: " + error.message); }
+    };
 
-    const handleAddOfferta = useCallback(async ({ nomeOfferta, clienteId }) => {
-        try {
-            const result = await offerteManager.addOfferta(nomeOfferta, clienteId); // Aspetta oggetto risultato
-            if (result.success && result.id) {
-                const nuovaOfferta = {
-                    id: result.id,
-                    nomeOfferta,
-                    clienteId,
-                    stato: 'bozza',
-                    faseCorrente: 1,
-                    datiAnalisi: {},
-                };
-                handleSelectOfferta(nuovaOfferta);
-            } else {
-                throw new Error(result.message || "ID offerta non restituito."); // Gestisci fallimento
-            }
-        } catch (error) {
-            console.error("Errore creazione offerta:", error);
-            alert(`Errore creazione offerta: ${error.message}`);
-        }
-    }, [offerteManager, handleSelectOfferta]);
-
-    // ✅ --- handleAnalisiSubmit MODIFICATO ---
-    const handleAnalisiSubmit = useCallback(async (formData) => {
-        // --- DEBUG LOG ---
-    console.log("handleAnalisiSubmit - formData ricevuto:", JSON.stringify(formData, null, 2)); 
-    // Controlla specificamente l'oggetto sopralluogo
-    console.log("handleAnalisiSubmit - formData.sopralluogo:", formData?.sopralluogo); 
-    // --- FINE DEBUG ---
-        if (!activeOfferta || !selectedCompanyId) {
-            alert("Errore: Offerta attiva o azienda non selezionata.");
-            return;
-        }
-        try {
-            // Helper per upload file (invariato)
-            const uploadFilesByCategory = async (files, category) => {
-                if (!files || files.length === 0) return [];
-                const path = `offerte/${activeOfferta.id}/documenti_gara/${category}`;
-                const uploadResults = await documentiManager.uploadFiles(files, path);
-                return uploadResults.map(res => ({
-                    url: res.downloadURL ?? res.fileURL ?? null,
-                    nome: res.fileName ?? 'nome-file-sconosciuto',
-                    path: res.filePath ?? null
-                }));
-            };
-
-            // Upload files (invariato)
-            const [uploadedGenerali, uploadedEconomici, uploadedTecnici, uploadedCME] = await Promise.all([
-                uploadFilesByCategory(formData.docGaraGeneraliFiles, 'generali'),
-                uploadFilesByCategory(formData.docGaraEconomiciFiles, 'economici'),
-                uploadFilesByCategory(formData.docGaraTecniciFiles, 'tecnici'),
-                uploadFilesByCategory(formData.docCMEFiles, 'cme')
-            ]);
-
-            // Prepara dati sanificati (invariato)
-            const scadenzaDate = formData.scadenza ? new Date(formData.scadenza) : null;
-            const datiSanificati = {
-                tipoGara: formData.tipoGara ?? '',
-                tipologiaLavoro: formData.tipologiaLavoro ?? '',
-                documentiRichiesti: formData.documentiRichiesti ?? [],
-                altriDocumentiCustom: formData.altriDocumentiCustom ?? [],
-                docGaraGenerali: uploadedGenerali,
-                docGaraEconomici: uploadedEconomici,
-                docGaraTecnici: uploadedTecnici,
-                docCME: uploadedCME,
-                // Assicurati che 'sopralluogo' contenga tutti i dati necessari (data, personaleId, formTemplateId)
-                sopralluogo: formData.sopralluogo?.necessario ? formData.sopralluogo : null,
-                valoreEconomico: formData.valoreEconomico ?? '',
-                manifestazioneInteresse: formData.manifestazioneInteresse ?? false,
-                referente: {
-                    ...(formData.referente || {}),
-                    scadenza: scadenzaDate && !isNaN(scadenzaDate) ? scadenzaDate : null
-                }
-            };
-
-            console.log("✅ Dati Analisi pronti. Invio a useOfferteManager...", datiSanificati);
-            // --- DEBUG LOG ---
-    console.log("handleAnalisiSubmit - controllo sopralluogo:", {
-        data: datiSanificati.sopralluogo?.data,
-        personaleId: datiSanificati.sopralluogo?.personaleId,
-        templateId: datiSanificati.sopralluogo?.formTemplateSopralluogoId
-    });
-    // --- FINE DEBUG ---
-            // 1. Salva l'offerta
-            const saveOfferResult = await offerteManager.salvaAnalisiPreliminare(activeOfferta.id, datiSanificati);
-
-            // 2. Se salvataggio OK E c'è un sopralluogo da fissare...
-            if (saveOfferResult.success && datiSanificati.sopralluogo?.data && datiSanificati.sopralluogo?.personaleId && datiSanificati.sopralluogo?.formTemplateSopralluogoId) {
-
-                // 3. Prepara i dati per l'evento agenda
-                const eventoData = {
-                    title: `Sopralluogo per ${activeOfferta.nomeOfferta}`,
-                    start: new Date(datiSanificati.sopralluogo.data),
-                    end: null, // O calcola durata
-                    description: `Sopralluogo relativo all'offerta ${activeOfferta.id}. Indirizzo: ${datiSanificati.sopralluogo.indirizzo || 'N/D'}`,
-                    partecipanti: [{ userId: datiSanificati.sopralluogo.personaleId, ruolo: 'tecnico' }],
-                    formTemplateId: datiSanificati.sopralluogo.formTemplateSopralluogoId,
-                    offertaId: activeOfferta.id,
-                    // companyID verrà aggiunto da addEvento
-                };
-
-                // 4. CHIAMA agendaManager per creare l'evento
-                console.log("[OfferteContent] Tentativo creazione evento sopralluogo...");
-               const createEventResult = await agendaManager.onAddEvent(eventoData);
-
-                if (!createEventResult.success) {
-                    console.error("Errore creazione evento:", createEventResult.message);
-                    alert(`Analisi salvata, ma errore nella creazione dell'appuntamento: ${createEventResult.message}`);
-                } else {
-                    console.log("[OfferteContent] Evento sopralluogo creato con successo.");
-                    alert("Analisi preliminare salvata e appuntamento per sopralluogo creato!");
-                }
-            } else if (!saveOfferResult.success) {
-                console.error("Errore salvataggio analisi:", saveOfferResult.message);
-                alert(`Errore nel salvataggio dell'analisi preliminare: ${saveOfferResult.message}`);
-                // Non procedere se il salvataggio iniziale fallisce
-                return;
-            } else {
-                // Salvataggio offerta ok, ma nessun sopralluogo o dati incompleti
-                alert("Dati analisi preliminare salvati con successo!");
-            }
-
-            // Aggiorna stato locale e naviga in ogni caso di successo (anche senza sopralluogo)
-            setActiveOfferta(prev => ({
-                ...prev,
-                datiAnalisi: datiSanificati,
-                stato: 'analisi_preliminare', // Aggiorna lo stato qui
-                faseCorrente: 1 // O 2 se si passa direttamente
-            }));
-            setActiveView('elaborazione'); // Vai alla fase successiva
-
-        } catch (error) {
-            console.error("Errore complesso durante il salvataggio dell'analisi:", error);
-            alert(`Errore durante il salvataggio: ${error.message}`);
-        }
-    }, [activeOfferta, selectedCompanyId, offerteManager, documentiManager, agendaManager]); // Aggiunto agendaManager
-
-    // ❌ --- ELIMINATA LA FUNZIONE handleCreaAppuntamentoSopralluogo ---
-
-    // Handler Elaborazione Submit (invariato)
-    const handleElaborazioneSubmit = useCallback(async (formData) => {
-        // ... (logica esistente per upload file, preparazione dati, chiamata a salvaElaborazione) ...
-        if (!activeOfferta || !selectedCompanyId) return; // Aggiunto controllo
-        console.log("[OfferteContent] Ricevuto submit Elaborazione:", formData);
-        try {
-            let uploadedCMECompilato = [];
-            if (formData.docCMECompilatoFiles?.length > 0) {
-                 const path = `offerte/${activeOfferta.id}/elaborazione/cme_compilato`;
-                 const results = await documentiManager.uploadFiles(formData.docCMECompilatoFiles, path);
-                 uploadedCMECompilato = results.map(res => ({ url: res.downloadURL ?? res.fileURL ?? null, nome: res.fileName ?? 'nome-file-sconosciuto', path: res.filePath ?? null }));
-            }
-            // TODO: Upload file Analisi Costi se presente
-
-            const datiDaSalvare = {
-                 ...formData,
-                 docCMECompilato: uploadedCMECompilato,
-            };
-            delete datiDaSalvare.docCMECompilatoFiles;
-
-            const valoreIniziale = activeOfferta.datiAnalisi?.valoreEconomico || 0;
-            const costiTotaliCalc = datiDaSalvare.costiAnalisi?.totale || 0;
-            const sconto = datiDaSalvare.scontoProposto || 0;
-            const utilePrevistoCalc = (valoreIniziale * (1 - sconto / 100)) - costiTotaliCalc;
-
-            const riepilogo = {
-                 nomeOfferta: activeOfferta.nomeOfferta,
-                 valore: valoreIniziale,
-                 sconto: sconto,
-                 utile: utilePrevistoCalc,
-                 tempistiche: datiDaSalvare.tempistichePreviste
-            };
-
-            // Chiamata corretta al manager delle offerte
-            const saveElabResult = await offerteManager.salvaElaborazione(activeOfferta.id, datiDaSalvare, riepilogo);
-             if (!saveElabResult.success) throw new Error(saveElabResult.message); // Gestisci fallimento
-
-            // Crea nota in agenda se necessario
-            if (datiDaSalvare.approvazioneNecessaria && datiDaSalvare.utenteApprovazioneId) {
-                // Assicurati che `creaNotaApprovazione` esista in agendaManager e gestisca gli errori
-                const notaResult = await agendaManager.creaNotaApprovazione(datiDaSalvare.utenteApprovazioneId, activeOfferta, riepilogo);
-                if (!notaResult.success) {
-                   console.warn("Nota approvazione non creata:", notaResult.message);
-                   // Non bloccare, ma avvisa
-                   alert("Elaborazione salvata, ma errore creazione nota approvazione.");
-                }
-            }
-
-            setActiveOfferta(prev => ({
-                 ...prev,
-                 datiElaborazione: datiDaSalvare,
-                 stato: datiDaSalvare.approvazioneNecessaria ? 'in_approvazione' : 'elaborata',
-                 faseCorrente: 2
-            }));
-            alert("Dati elaborazione salvati con successo!");
-             // Decidi se navigare automaticamente o no
-             // setActiveView('invio');
-
-        } catch (error) {
-             console.error("Errore durante il salvataggio dell'elaborazione:", error);
-             alert(`Errore durante il salvataggio: ${error.message}`);
-        }
-    }, [activeOfferta, selectedCompanyId, offerteManager, documentiManager, agendaManager, personnel]);
-
-    // Handler Approva Offerta (invariato)
-    const handleApproveOffer = useCallback(async () => {
-        if (!activeOfferta || activeOfferta.stato !== 'in_approvazione') {
-             alert("Errore: Offerta non selezionata o non in stato di approvazione.");
-             return;
-        }
-        try {
-            const approveResult = await offerteManager.approvaOfferta(activeOfferta.id);
-            if (!approveResult.success) throw new Error(approveResult.message); // Gestisci fallimento
-
-            setActiveOfferta(prev => ({
-                 ...prev,
-                 stato: 'approvata',
-                 faseCorrente: 3
-            }));
-            alert("Offerta approvata con successo!");
-             setActiveView('invio');
-
-        } catch (error) {
-             console.error("Errore durante l'approvazione dell'offerta:", error);
-             alert(`Errore durante l'approvazione: ${error.message}`);
-        }
-    }, [activeOfferta, offerteManager]);
-
-    // --- ✅ NUOVI HANDLERS PER LA FASE 3 ---
-    const handleLogProroga = useCallback(async (offertaId, userId) => {
-        if (!offertaManager || !offertaId || !userId) return;
-        try {
-            const result = await offerteManager.logProroga(offertaId, userId);
-            if (!result.success) throw new Error(result.message);
-            // Aggiorna lo stato locale per riflettere la proroga loggata
-            setActiveOfferta(prev => prev && prev.id === offertaId ? {
-                 ...prev,
-                 logProroghe: [...(prev.logProroghe || []), { userId, timestamp: new Date() }] // Aggiunta locale temporanea
-            } : prev);
-            alert("Proroga registrata con successo!");
-            // Non serve navigare, l'utente può ora aprire il controllo documentale
-        } catch (error) {
-            console.error("Errore registrazione proroga:", error);
-            alert(`Errore: ${error.message}`);
-        }
-    }, [offerteManager]);
-
-    const handleArchiviaOfferta = useCallback(async (offertaId) => {
-        if (!offerteManager || !offertaId) return;
-        if (!confirm("Sei sicuro di voler archiviare questa offerta?")) return; // Aggiunta conferma
-        try {
-            const result = await offerteManager.archiveOfferta(offertaId);
-            if (!result.success) throw new Error(result.message);
-            alert("Offerta archiviata con successo!");
-            // Torna alla dashboard principale dopo l'archiviazione
-            setActiveOfferta(null);
-            setActiveView('principale');
-        } catch (error) {
-            console.error("Errore archiviazione offerta:", error);
-            alert(`Errore: ${error.message}`);
-        }
-    }, [offerteManager]);
-
-    const handleSetInviata = useCallback(async (offertaId, daPiattaforma) => {
-        if (!offerteManager || !offertaId) return;
-        try {
-            const result = await offerteManager.inviaOfferta(offertaId, daPiattaforma);
-            if (!result.success) throw new Error(result.message);
-            // Aggiorna lo stato locale
-             setActiveOfferta(prev => prev && prev.id === offertaId ? {
-                 ...prev,
-                 stato: 'inviata',
-                 inviataDaPiattaforma: daPiattaforma,
-                 dataInvio: new Date() // Data locale temporanea
-            } : prev);
-            alert("Offerta contrassegnata come inviata!");
-            // Rimani sulla stessa vista per vedere lo stato aggiornato
-        } catch (error) {
-            console.error("Errore impostazione 'inviata':", error);
-            alert(`Errore: ${error.message}`);
-        }
-    }, [offerteManager]);
-
-    // --- ✅ NUOVO HANDLER: onPrepareEmailDraft ---
-    const handlePrepareEmailDraft = useCallback(async (offertaId, emailData, additionalFiles, foundDocuments) => {
-        console.log("[OfferteContent] Preparazione Bozza Email per Offerta:", offertaId);
-        console.log("[OfferteContent] Preparazione Bozza Email per Offerta:", offertaId);
-        console.log("Dati Email:", emailData);
-        console.log("File Aggiuntivi Selezionati:", additionalFiles); // Oggetti File
-        console.log("Documenti Richiesti Trovati:", foundDocuments); // Oggetti { ..., fileDetails: { url, nome, ... } }
-
-        // Trova l'offerta attiva per nome, etc.
-        const offertaCorrente = offerte.find(o => o.id === offertaId);
-        if (!offertaCorrente) {
-             alert("Errore: Offerta non trovata.");
-             return;
-        }
-
-        // --- 1. Gestione Allegati ---
-        let allAttachments = [];
-
-        // Aggiungi i documenti richiesti trovati
-        foundDocuments.forEach(doc => {
-            if (doc.fileDetails?.url) {
-                // Se abbiamo già l'URL (es. da file automatici o caricati precedentemente)
-                allAttachments.push({ name: doc.fileDetails.nome || doc.label, url: doc.fileDetails.url });
-            } else if (doc.fileDetails?.path) {
-                // Se abbiamo solo il path (potrebbe servire generare URL temporaneo?)
-                 console.warn(`Documento ${doc.label} ha solo un path: ${doc.fileDetails.path}. Gestione URL non implementata.`);
-                 // Potresti dover usare getDownloadURL(ref(storage, doc.fileDetails.path)) qui
-                 allAttachments.push({ name: doc.fileDetails.nome || doc.label, path: doc.fileDetails.path }); // Placeholder
-                console.log("Allegati totali da includere:", allAttachments);
-                }
-        });
-
-        // Gestisci upload file aggiuntivi (se ce ne sono)
-        if (additionalFiles.length > 0) {
-            // Mostra stato caricamento (potresti voler aggiungere uno stato 'isUploadingDraft')
-            alert("Caricamento allegati aggiuntivi in corso..."); 
+    const checkAndOpenOfferta = useCallback(async () => {
+        const pendingId = localStorage.getItem('APRI_OFFERTA_ID');
+        if (!pendingId) return;
+        
+        let foundOfferta = offerte.find(o => o.id === pendingId);
+        if (!foundOfferta && safeDb) {
             try {
-                 const path = `offerte/${offertaId}/allegati_email_invio`;
-                 // Assicurati che documentiManager sia disponibile
-                 if (!documentiManager) throw new Error("Documenti Manager non inizializzato.");
+                const docSnap = await getDoc(doc(safeDb, 'offerte', pendingId));
+                if (docSnap.exists()) foundOfferta = { id: docSnap.id, ...docSnap.data() };
+            } catch(e) { console.error(e); }
+        }
 
-                 const uploadResults = await documentiManager.uploadFiles(additionalFiles, path);
-                 uploadResults.forEach(res => {
-                     allAttachments.push({ name: res.fileName, url: res.downloadURL ?? res.fileURL });
-                 });
-                 console.log("Allegati aggiuntivi caricati:", uploadResults);
-            } catch (error) {
-                 console.error("Errore caricamento allegati aggiuntivi:", error);
-                 alert(`Errore durante il caricamento degli allegati aggiuntivi: ${error.message}`);
-                 return; // Interrompi se l'upload fallisce
+        if (foundOfferta) {
+            setSelectedOfferta(foundOfferta);
+            setMacroArea(foundOfferta.tipoOfferta === 'privato' ? 'privati' : 'gare');
+            setViewMode(foundOfferta.tipoOfferta === 'privato' ? 'workspace_privato' : 'workspace');
+        }
+        localStorage.removeItem('APRI_OFFERTA_ID');
+    }, [offerte, safeDb]);
+
+    useEffect(() => { if (!loadingData && offerte.length > 0) checkAndOpenOfferta(); }, [loadingData, offerte, checkAndOpenOfferta]);
+
+    const canWrite = userRole === 'proprietario' ? !!companyID : true;
+
+    const { gareOfferte, privatiOfferte, filteredGare } = useMemo(() => {
+        const isSuperAdmin = userRole === 'proprietario' && companyID === null;
+        let baseOfferte = isSuperAdmin ? offerte : offerte.filter(o => o.companyID === companyID);
+
+        const gare = baseOfferte.filter(o => !o.tipoOfferta || o.tipoOfferta === 'gara');
+        const privati = baseOfferte.filter(o => o.tipoOfferta === 'privato');
+
+        let filtratiGare = [...gare];
+        if (activeTab === 'in_corso') filtratiGare = filtratiGare.filter(o => !['accettata', 'rifiutata', 'archiviata', 'convertita_in_cantiere'].includes(o.stato));
+        else if (activeTab === 'vinte') filtratiGare = filtratiGare.filter(o => ['accettata', 'convertita_in_cantiere'].includes(o.stato));
+        else if (activeTab === 'archivio') filtratiGare = filtratiGare.filter(o => ['rifiutata', 'archiviata'].includes(o.stato));
+
+        filtratiGare.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            filtratiGare = filtratiGare.filter(o => {
+                const cliente = clients.find(c => c.id === o.clienteId);
+                const nomeCliente = cliente ? (cliente.ragioneSociale || `${cliente.nome} ${cliente.cognome}`).toLowerCase() : '';
+                return (o.nomeOfferta || '').toLowerCase().includes(term) || nomeCliente.includes(term);
+            });
+        }
+
+        return { gareOfferte: gare, privatiOfferte: privati, filteredGare: filtratiGare };
+    }, [offerte, clients, userRole, companyID, activeTab, searchTerm]);
+
+    const getStatusBadge = (stato) => {
+        switch (stato) {
+            case 'in_elaborazione': return <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border border-amber-200">In Elaborazione</span>;
+            case 'in_preventivazione':
+            case 'in_approvazione': return <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border border-purple-200">In Approvazione</span>;
+            case 'pronta_per_invio': return <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border border-blue-200">Pronta Invio</span>;
+            case 'inviata': return <span className="bg-sky-100 text-sky-800 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border border-sky-200">Inviata</span>;
+            case 'accettata':
+            case 'convertita_in_cantiere': return <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border border-emerald-200">Vinta / Convertita</span>;
+            case 'rifiutata': return <span className="bg-red-100 text-red-800 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border border-red-200">Persa</span>;
+            case 'archiviata': return <span className="bg-slate-100 text-slate-800 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border border-slate-300">Archiviata</span>;
+            default: return <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border border-slate-200">{stato?.replace(/_/g, ' ') || 'Nuova'}</span>;
+        }
+    };
+
+    const handleCreateOfferta = async (datiOfferta) => {
+        const res = await addOfferta(datiOfferta.nomeOfferta, datiOfferta.clienteId);
+        if (res.success) {
+            if (macroArea === 'privati') {
+                await updateDoc(doc(safeDb, 'offerte', res.id), { tipoOfferta: 'privato', stato: 'da_valutare' });
+                setSelectedOfferta({ id: res.id, nomeOfferta: datiOfferta.nomeOfferta, clienteId: datiOfferta.clienteId, stato: 'da_valutare', tipoOfferta: 'privato' });
+                setViewMode('workspace_privato'); 
+            } else {
+                setSelectedOfferta({ id: res.id, nomeOfferta: datiOfferta.nomeOfferta, clienteId: datiOfferta.clienteId, stato: 'nuova', faseCorrente: 1, tipoOfferta: 'gara' });
+                setViewMode('workspace');
             }
-        }
-        
-        console.log("Allegati totali da includere:", allAttachments);
+        } else alert(res.message);
+    };
 
-        // --- 2. Preparazione Dati Email per API (Placeholder) ---
-        const emailPayload = {
-            to: emailData.to,
-            subject: emailData.subject,
-            // Body: potresti generarlo qui o passarlo da RevisioneInvioForm
-            body: `Gentile ${offertaCorrente?.datiAnalisi?.referente?.nome || ''},\n\nIn allegato trova la documentazione relativa alla nostra partecipazione alla gara "${offertaCorrente?.nomeOfferta || ''}".\n\nCordiali saluti.`, 
-            attachments: allAttachments // Array di oggetti { name, url } o { name, path }
-        };
-
-        // --- 3. Creazione Nota Agenda ---
+    const handleUpdateOffertaPrivata = async (id, updates) => {
         try {
-             // Assicurati che agendaManager sia disponibile e abbia il metodo
-             if (!agendaManager?.creaNotaInvioMail) throw new Error("Agenda Manager o creaNotaInvioMail non disponibile.");
-             
-             // Passa l'ID dell'utente loggato e l'offerta corrente
-             const notaResult = await agendaManager.creaNotaInvioMail(user.uid, offertaCorrente);
-             if (!notaResult.success) {
-                  console.warn("Nota agenda per invio email non creata:", notaResult.message);
-                  alert("Bozza preparata (simulato), ma errore creazione nota agenda.");
-             } else {
-                 console.log("Nota agenda per invio email creata.");
-             }
-        } catch (error) {
-             console.error("Errore durante la creazione della nota agenda:", error);
-             alert(`Bozza preparata (simulato), ma errore durante la creazione della nota agenda: ${error.message}`);
-             // Non interrompere necessariamente, la bozza potrebbe essere creata comunque
-        }
-        
-
-        // --- 4. Chiamata API Creazione Bozza (Placeholder/Simulazione) ---
-        console.log("--- SIMULAZIONE CREAZIONE BOZZA GMAIL ---");
-        console.log("Payload:", emailPayload);
-        // Qui chiameresti la tua funzione (es. via backend/cloud function)
-        // await createGmailDraft(emailPayload); 
-        alert("Bozza Email preparata (simulato) e nota in agenda creata. Controlla la tua console per i dettagli.");
-        
-        // Cosa fare dopo? Potremmo voler aggiornare lo stato dell'offerta?
-        // Secondo lo schema, lo stato cambia solo alla conferma della nota.
-        // Potremmo disabilitare il bottone o cambiare il testo.
-
-    }, [offerte, user, documentiManager, agendaManager]); // Aggiungi dipendenze
-    // --- FINE NUOVI HANDLERS ---
-
-    // Oggetto handlers (invariato)
-    const formSubmissions = {
-        handleAnalisiSubmit,
-        handleElaborazioneSubmit,
-        handleApproveOffer,
-        handleLogProroga,
-        handleArchiviaOfferta,
-        handleSetInviata,
-        // Aggiungi handler Fase 3 qui
+            await updateDoc(doc(safeDb, 'offerte', id), updates);
+            setSelectedOfferta(prev => ({...prev, ...updates}));
+        } catch(e) { console.error(e); }
     };
 
-    // Filtro offerte (invariato)
-    const offerteInLavorazione = offerte.filter(o =>
-        !['archiviata', 'rifiutata', 'accettata'].includes(o.stato)
-    );
+    // ✅ NUOVA FUNZIONE: Usa addCantiere passandogli le fasi!
+    const handleConvertiCantierePrivato = async (offerta, datiPreventivo, datiLead, budgetCosti, fasiAttuali) => {
+        try {
+            if (safeDb && companyID) {
+                const clienteAssociato = clients.find(c => c.id === offerta.clienteId);
+                const ricavoTotale = datiPreventivo.totale || offerta.valoreChiusura || 0;
 
-    // Render logic (invariato)
-  const renderMainContent = () => {
-        if (activeOfferta) {
-            
-            // --- Logica Esistente ---
-            const sopralluogoTemplateId = activeOfferta.datiAnalisi?.sopralluogo?.formTemplateSopralluogoId;
-            const sopralluogoFormTemplate = availableForms.find(f => f.id === sopralluogoTemplateId);
-            
-            // --- RIMUOVI IL BLOCCO DI LOG propsPerWorkspace e lo spread operator ---
-            // console.log("%c[OfferteContent] -> Invio props a OffertaWorkspaceView:", "color: blue; font-weight: bold;", propsPerWorkspace);
-            
-            // --- Passa le props ESPLICITAMENTE ---
-            return (
-                <OffertaWorkspaceView
-                    offerta={activeOfferta}
-                    faseAttivaId={activeView}
-                    formSubmissions={formSubmissions}
-                    isSaving={offerteManager.isSaving}
-                    clienteSelezionato={clients.find(c => c.id === activeOfferta.clienteId)}
-                    personnel={personnel}
-                    onAddReferente={handleAddReferente}
-                    companyId={selectedCompanyId}
-                    currentUser={user}
-                    availableForms={availableForms}
-                    onCreaAppuntamento={handleCreaAppuntamentoValidation}
-                    // Passa la prop direttamente
-                    sopralluogoFormTemplate={sopralluogoFormTemplate} 
-                    onLogProroga={handleLogProroga}
-                    onArchivia={handleArchiviaOfferta}
-                    onSetInviata={handleSetInviata}
-                    onPrepareEmailDraft={handlePrepareEmailDraft}
-                />
-            );
-        }
+                const datiCantiere = {
+                    clienteId: offerta.clienteId || "",
+                    clienteNome: clienteAssociato?.ragioneSociale || `${clienteAssociato?.nome || ''} ${clienteAssociato?.cognome || ''}` || "Cliente",
+                    nomeCliente: clienteAssociato?.ragioneSociale || "Cliente",
+                    offertaCollegataId: offerta.id,
+                    nomeCantiere: datiPreventivo.oggetto || offerta.nomeOfferta || "Lavoro Privato",
+                    titolo: datiPreventivo.oggetto || offerta.nomeOfferta || "Lavoro Privato",
+                    indirizzoCantiere: datiLead.indirizzoCantiere || "",
+                    descrizioneCantiere: datiLead.descrizione || "Nessuna descrizione",
+                    dataInizio: new Date().toISOString(), 
+                    dataPresuntaInizio: new Date().toISOString(),
+                    valoreAppalto: ricavoTotale,
+                    budgetCosti: budgetCosti || 0,
+                    utilePrevisto: ricavoTotale - (budgetCosti || 0),
+                };
 
-        switch (activeView) {
-            case 'in_analisi':
-                return <OfferteListView title="Offerte in Lavorazione" offerte={offerteInLavorazione} onSelectOfferta={handleSelectOfferta} />;
-            case 'principale':
-            default:
-                return <OfferteDashboard offerte={offerte} clients={clients} onSelectOfferta={handleSelectOfferta} onAddOfferta={handleAddOfferta} isSaving={offerteManager.isSaving} isCompanySelected={!!selectedCompanyId} />;
+                // Chiamata al nuovo manager che gestisce il batch con i subcantieri
+                const res = await addCantiere(datiCantiere, fasiAttuali);
+
+                if (res.success) {
+                    await updateDoc(doc(safeDb, 'offerte', offerta.id), {
+                        stato: 'convertita_in_cantiere',
+                        cantiereId: res.id,
+                        valoreChiusura: ricavoTotale
+                    });
+                    alert("🏗️ Cantiere Operativo generato! Le fasi, i materiali e la manodopera sono stati trasferiti con successo.");
+                    setViewMode('list'); 
+                } else {
+                    alert("Errore: " + res.message);
+                }
+            }
+        } catch (error) { 
+            console.error("Errore conversione cantiere:", error); 
+            alert("Si è verificato un errore durante la conversione.");
         }
     };
 
-    // Sidebar setup (invariato)
-    const dashboardFasi = [
-        { id: 'principale', label: 'Menu Principale', icon: faHome },
-        { id: 'in_analisi', label: 'In Lavorazione', icon: faTasks },
-    ];
-    const workspaceFasi = [
-        { id: 'analisi', label: '1. Analisi', icon: faFileAlt },
-        { id: 'elaborazione', label: '2. Elaborazione', icon: faCogs },
-        { id: 'invio', label: '3. Revisione/Invio', icon: faPaperPlane },
-    ];
-    const sidebarFasi = !activeOfferta ? dashboardFasi : workspaceFasi;
+    if (loadingData) return <div className="p-10 text-center animate-pulse font-bold text-slate-400">Caricamento Offerte...</div>;
 
-    // Auth check (invariato)
-    if (!isAuthorized) {
+    if (viewMode === 'add') {
         return (
-            <div className="flex h-screen bg-gray-100 items-center justify-center p-4 text-center">
-                <div><h2 className="text-xl font-bold">Accesso Negato</h2><p className="text-gray-600 mt-2">Permessi insufficienti.</p></div>
+            <div className="container mx-auto p-6 max-w-4xl animate-fade-in relative">
+                <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+                    <div className="flex justify-between items-center mb-6 border-b pb-4">
+                        <h2 className="text-2xl font-black text-slate-800 tracking-tight">
+                            {macroArea === 'privati' ? 'Nuovo Lavoro Privato (Lead)' : 'Nuovo Dossier Gara'}
+                        </h2>
+                        <button onClick={() => setViewMode('list')} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-bold transition-colors">
+                            <ArrowLeftIcon className="h-5 w-5" /> Annulla
+                        </button>
+                    </div>
+
+                    <div className="mb-6 flex justify-end">
+                        <button onClick={() => setShowNewClientModal(true)} className="flex items-center gap-2 text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl font-bold hover:bg-indigo-100 transition-colors text-sm">
+                            <UserPlusIcon className="h-5 w-5" /> Nuovo Cliente Rapido
+                        </button>
+                    </div>
+
+                    <NuovaOffertaForm clients={clients} onSubmit={handleCreateOfferta} isSaving={isSaving} onBack={() => setViewMode('list')}/>
+                </div>
+
+                {showNewClientModal && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 rounded-2xl backdrop-blur-sm p-4">
+                        <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md animate-fade-in-up">
+                            <div className="flex justify-between items-center mb-4 border-b pb-2">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><UserPlusIcon className="h-5 w-5 text-indigo-600"/> Aggiungi Cliente</h3>
+                                <button onClick={() => setShowNewClientModal(false)} className="text-slate-400 hover:text-slate-600"><XMarkIcon className="h-5 w-5"/></button>
+                            </div>
+                            <div className="space-y-3">
+                                <div><label className="block text-xs font-bold text-slate-500 mb-1">Ragione Sociale / Nome e Cognome *</label><input type="text" value={newClientData.ragioneSociale} onChange={e=>setNewClientData({...newClientData, ragioneSociale: e.target.value})} className="w-full rounded-lg border-slate-300"/></div>
+                                <div><label className="block text-xs font-bold text-slate-500 mb-1">P.IVA / C.F.</label><input type="text" value={newClientData.partitaIva} onChange={e=>setNewClientData({...newClientData, partitaIva: e.target.value})} className="w-full rounded-lg border-slate-300"/></div>
+                                <div className="flex gap-2">
+                                    <div className="w-1/2"><label className="block text-xs font-bold text-slate-500 mb-1">Telefono</label><input type="text" value={newClientData.telefono} onChange={e=>setNewClientData({...newClientData, telefono: e.target.value})} className="w-full rounded-lg border-slate-300"/></div>
+                                    <div className="w-1/2"><label className="block text-xs font-bold text-slate-500 mb-1">Email</label><input type="email" value={newClientData.email} onChange={e=>setNewClientData({...newClientData, email: e.target.value})} className="w-full rounded-lg border-slate-300"/></div>
+                                </div>
+                            </div>
+                            <button onClick={handleSaveNewClient} className="w-full mt-6 py-2 bg-indigo-600 text-white rounded-lg font-bold shadow-md hover:bg-indigo-700">Salva Cliente</button>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
 
-    // Main layout (invariato)
-    return (
-        <div className="flex h-screen bg-gray-100">
-            <OfferteSidebar
-                fasi={sidebarFasi}
-                faseAttivaId={activeView}
-                onSelectFase={handleSidebarNavigate}
-                AziendaSelectorComponent={userRole === 'proprietario' ? AziendaSelector : null}
-                onBackToMainDashboard={onNavigateBack}
+    if (viewMode === 'workspace' && selectedOfferta) {
+        const currentOfferta = offerte.find(o => o.id === selectedOfferta.id) || selectedOfferta;
+        const clienteAssociato = clients.find(c => c.id === currentOfferta.clienteId);
+        
+        const formSubmissionsHandlers = {
+            handleAnalisiSubmit: async (datiForm) => {
+                const res = await salvaAnalisiPreliminare(currentOfferta.id, datiForm, currentOfferta.nomeOfferta, clienteAssociato?.ragioneSociale);
+                if (res.success) setSelectedOfferta(prev => ({...prev, faseCorrente: 2, stato: 'in_elaborazione'}));
+            },
+            handleElaborazioneSubmit: async (datiElaborazione) => {
+                const res = await salvaElaborazione(currentOfferta.id, datiElaborazione);
+                if (res.success) setSelectedOfferta(prev => ({...prev, faseCorrente: datiElaborazione.approvazioneNecessaria ? 2 : 3}));
+            },
+            handleApproveOffer: async () => {
+                const res = await approvaOfferta(currentOfferta.id);
+                if (res.success) setSelectedOfferta(prev => ({...prev, faseCorrente: 3, stato: 'pronta_per_invio'}));
+            }
+        };
+
+        const handleConvertiInCantiere = async (id) => {
+            // ... logica gare (verrà aggiornata quando faremo le Gare d'Appalto)
+        };
+
+        return (
+            <OffertaWorkspaceView 
+                offerta={currentOfferta}
+                faseAttivaId={currentOfferta.faseCorrente === 1 ? 'analisi' : currentOfferta.faseCorrente === 2 ? 'elaborazione' : 'invio'}
+                clienteSelezionato={clienteAssociato}
+                formSubmissions={formSubmissionsHandlers} 
+                isSaving={isSaving} personnel={users} availableForms={forms} companyId={companyID} currentUser={user}
+                onAddReferente={(datiRef) => aggiungiReferenteCliente(currentOfferta.clienteId, datiRef, currentOfferta.nomeOfferta)}
+                onLogProroga={() => logProroga(currentOfferta.id, user.uid)}
+                onArchivia={async () => { await archiveOfferta(currentOfferta.id); setViewMode('list'); }}
+                onSetInviata={() => inviaOfferta(currentOfferta.id, true)}
+                onAccettaOfferta={async (id, valoreFinale) => { await accettaOfferta(id); setViewMode('list'); }}
+                onConvertiInCantiere={handleConvertiInCantiere} onAggiornaCantiere={() => {}}
+                onRifiutaOfferta={async (id) => { await rifiutaOfferta(id); setViewMode('list'); }}
+                onPrepareEmailDraft={() => {}} onBack={() => { setViewMode('list'); setSelectedOfferta(null); }}
             />
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Aggiunto controllo loadingData qui */}
-                {loadingData ? (
-                    <div className="p-8 text-center">Caricamento dati offerte...</div>
-                ) : (
-                    renderMainContent()
-                )}
+        );
+    }
+
+    if (viewMode === 'workspace_privato' && selectedOfferta) {
+        const currentOfferta = offerte.find(o => o.id === selectedOfferta.id) || selectedOfferta;
+        const clienteAssociato = clients.find(c => c.id === currentOfferta.clienteId);
+        const currentCompany = (data?.companies || []).find(c => c.id === companyID);
+
+        return (
+            <WorkspacePrivato 
+                offerta={currentOfferta} 
+                cliente={clienteAssociato} 
+                azienda={currentCompany} 
+                dipendenti={users}
+                attrezzature={attrezzature}
+                fornitori={fornitori}
+                noleggiatori={noleggiatori}
+                subappaltatori={subappaltatori}
+                currentUser={currentUserData}
+                storage={safeStorage}
+                safeDb={safeDb}
+                companyID={companyID}
+                eventi={eventi}
+                forms={forms}
+                reports={reports}
+                onBack={() => { setViewMode('list'); setSelectedOfferta(null); }}
+                onUpdate={handleUpdateOffertaPrivata}
+                onConvertiCantiere={handleConvertiCantierePrivato}
+            />
+        );
+    }
+
+    return (
+        <div className="container mx-auto p-6 space-y-6 max-w-7xl animate-fade-in pb-20">
+            
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                <div className="flex bg-slate-200/70 p-1.5 rounded-2xl shadow-inner w-full md:w-max border border-slate-300/50">
+                    <button 
+                        onClick={() => setMacroArea('gare')} 
+                        className={`flex-1 md:w-64 py-3 px-6 rounded-xl font-extrabold text-sm transition-all flex items-center justify-center gap-2 ${macroArea === 'gare' ? 'bg-white text-indigo-800 shadow-md scale-[1.02]' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <BuildingOfficeIcon className="h-5 w-5"/> Gare d'Appalto
+                    </button>
+                    <button 
+                        onClick={() => setMacroArea('privati')} 
+                        className={`flex-1 md:w-64 py-3 px-6 rounded-xl font-extrabold text-sm transition-all flex items-center justify-center gap-2 ${macroArea === 'privati' ? 'bg-indigo-600 text-white shadow-md scale-[1.02]' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <UserGroupIcon className="h-5 w-5"/> Lavori Privati (CRM)
+                    </button>
+                </div>
             </div>
+
+            {/* VISTA GARE */}
+            {macroArea === 'gare' && (
+                <div className="animate-fade-in-up">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6">
+                        <div><h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2"><DocumentTextIcon className="h-8 w-8 text-indigo-600"/> Gare e Appalti Pubblici</h1></div>
+                        <div className="bg-slate-100 p-1.5 rounded-xl flex flex-wrap gap-1 shadow-inner w-full md:w-auto">
+                            <button onClick={() => setActiveTab('tutte')} className={`flex-1 min-w-[100px] px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'tutte' ? 'bg-white shadow-sm text-indigo-700 border border-slate-200' : 'text-slate-500 hover:text-slate-700'} `}><RectangleStackIcon className="h-4 w-4"/> Tutte</button>
+                            <button onClick={() => setActiveTab('in_corso')} className={`flex-1 min-w-[100px] px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'in_corso' ? 'bg-white shadow-sm text-blue-700 border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}><PaperAirplaneIcon className="h-4 w-4"/> In Corso</button>
+                            <button onClick={() => setActiveTab('vinte')} className={`flex-1 min-w-[100px] px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'vinte' ? 'bg-white shadow-sm text-emerald-700 border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}><CheckBadgeIcon className="h-4 w-4"/> Vinte</button>
+                            <button onClick={() => setActiveTab('archivio')} className={`flex-1 min-w-[100px] px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'archivio' ? 'bg-white shadow-sm text-slate-800 border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}><ArchiveBoxIcon className="h-4 w-4"/> Perse</button>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+                        <div className="p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div className="relative w-full md:w-96"><MagnifyingGlassIcon className="absolute left-3 top-3 h-5 w-5 text-slate-400" /><input type="text" placeholder="Cerca dossier..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm" /></div>
+                            {canWrite && (<button onClick={() => setViewMode('add')} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700"><DocumentPlusIcon className="h-5 w-5" /> Crea Dossier Gara</button>)}
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-slate-200">
+                                <thead className="bg-slate-100/70">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Offerta</th>
+                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Stazione Appaltante</th>
+                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Data Creazione</th>
+                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Stato</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-slate-100">
+                                    {filteredGare.map(offerta => (
+                                        <tr key={offerta.id} onClick={() => { setSelectedOfferta(offerta); setViewMode('workspace'); }} className="hover:bg-indigo-50/50 cursor-pointer">
+                                            <td className="px-6 py-5 font-bold text-slate-900">{offerta.nomeOfferta || 'Senza Titolo'}</td>
+                                            <td className="px-6 py-5 text-xs text-slate-700">{clients.find(c => c.id === offerta.clienteId)?.ragioneSociale || 'N.D.'}</td>
+                                            <td className="px-6 py-5 text-xs text-slate-500 font-medium">{offerta.createdAt?.toDate ? offerta.createdAt.toDate().toLocaleDateString('it-IT') : 'N/D'}</td>
+                                            <td className="px-6 py-5">{getStatusBadge(offerta.stato)}</td>
+                                        </tr>
+                                    ))}
+                                    {filteredGare.length === 0 && <tr><td colSpan="4" className="p-8 text-center text-slate-400 italic">Nessuna gara trovata.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* VISTA PRIVATI (Kanban) */}
+            {macroArea === 'privati' && (
+                <div className="animate-fade-in-up">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><ViewColumnsIcon className="h-6 w-6 text-indigo-600"/> Pipeline Preventivi Privati</h2>
+                        {canWrite && (<button onClick={() => setViewMode('add')} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 text-sm shadow-sm"><PlusIcon className="h-4 w-4" /> Nuovo Preventivo Privato</button>)}
+                    </div>
+
+                    <div className="flex gap-4 overflow-x-auto pb-4 snap-x">
+                        
+                        <div className="min-w-[300px] w-[300px] bg-slate-100 rounded-2xl p-3 flex flex-col snap-start">
+                            <div className="flex justify-between items-center mb-3 px-1">
+                                <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">Sopralluogo / Studio</h3>
+                                <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{privatiOfferte.filter(o => !o.stato || ['nuova', 'da_valutare', 'in_valutazione', 'sopralluogo_fissato', 'attesa_conferma_tecnico'].includes(o.stato)).length}</span>
+                            </div>
+                            <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-1 scrollbar-thin">
+                                {privatiOfferte.filter(o => !o.stato || ['nuova', 'da_valutare', 'in_valutazione', 'sopralluogo_fissato', 'attesa_conferma_tecnico'].includes(o.stato)).map(o => {
+                                    const eventReq = eventi.filter(e => e.offertaId === o.id && e.tipo === 'sopralluogo').sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0))[0];
+                                    const isConf = eventReq?.stato === 'confermato';
+                                    return (
+                                        <div key={o.id} onClick={() => { setSelectedOfferta(o); setViewMode('workspace_privato'); }} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all group">
+                                            <p className="text-[10px] text-indigo-600 font-bold uppercase mb-1">{clients.find(c => c.id === o.clienteId)?.ragioneSociale || 'Cliente'}</p>
+                                            <p className="font-bold text-slate-800 text-sm leading-tight mb-2 group-hover:text-indigo-700">{o.nomeOfferta}</p>
+                                            {isConf ? <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Sopralluogo Confermato ✅</span> : o.stato === 'attesa_conferma_tecnico' ? <span className="text-[9px] bg-yellow-100 text-yellow-800 font-bold px-2 py-0.5 rounded">⏳ Attesa Tecnico</span> : o.stato === 'sopralluogo_fissato' ? <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Fissato Ufficio</span> : null}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="min-w-[300px] w-[300px] bg-purple-50 rounded-2xl p-3 flex flex-col snap-start">
+                            <div className="flex justify-between items-center mb-3 px-1">
+                                <h3 className="text-xs font-black text-purple-600 uppercase tracking-widest">In Approvazione</h3>
+                                <span className="bg-purple-200 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full">{privatiOfferte.filter(o => ['in_preventivazione', 'in_approvazione', 'approvata'].includes(o.stato)).length}</span>
+                            </div>
+                            <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-1 scrollbar-thin">
+                                {privatiOfferte.filter(o => ['in_preventivazione', 'in_approvazione', 'approvata'].includes(o.stato)).map(o => (
+                                    <div key={o.id} onClick={() => { setSelectedOfferta(o); setViewMode('workspace_privato'); }} className="bg-white p-4 rounded-xl shadow-sm border border-purple-200 cursor-pointer hover:border-purple-400 hover:shadow-md transition-all group">
+                                        <p className="text-[10px] text-purple-600 font-bold uppercase mb-1">{clients.find(c => c.id === o.clienteId)?.ragioneSociale || 'Cliente'}</p>
+                                        <p className="font-bold text-slate-800 text-sm leading-tight mb-2 group-hover:text-purple-700">{o.nomeOfferta}</p>
+                                        <span className="text-[9px] bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded">{o.stato === 'approvata' ? 'Approvata ✅' : 'In Lavorazione'}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="min-w-[300px] w-[300px] bg-sky-50 rounded-2xl p-3 flex flex-col snap-start">
+                            <div className="flex justify-between items-center mb-3 px-1">
+                                <h3 className="text-xs font-black text-sky-600 uppercase tracking-widest">Inviati (In Attesa)</h3>
+                                <span className="bg-sky-200 text-sky-800 text-[10px] font-bold px-2 py-0.5 rounded-full">{privatiOfferte.filter(o => o.stato === 'inviata').length}</span>
+                            </div>
+                            <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-1 scrollbar-thin">
+                                {privatiOfferte.filter(o => o.stato === 'inviata').map(o => (
+                                    <div key={o.id} onClick={() => { setSelectedOfferta(o); setViewMode('workspace_privato'); }} className="bg-white p-4 rounded-xl shadow-sm border border-sky-200 cursor-pointer hover:border-sky-400 hover:shadow-md transition-all group">
+                                        <p className="text-[10px] text-sky-600 font-bold uppercase mb-1">{clients.find(c => c.id === o.clienteId)?.ragioneSociale || 'Cliente'}</p>
+                                        <p className="font-bold text-slate-800 text-sm leading-tight mb-2 group-hover:text-sky-700">{o.nomeOfferta}</p>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[10px] text-slate-400 font-medium">{o.createdAt?.toDate ? o.createdAt.toDate().toLocaleDateString('it-IT') : 'N/D'}</span>
+                                            {o.valoreChiusura && <span className="text-xs font-black text-sky-700">€ {o.valoreChiusura}</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="min-w-[300px] w-[300px] bg-emerald-50 rounded-2xl p-3 flex flex-col snap-start">
+                            <div className="flex justify-between items-center mb-3 px-1">
+                                <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest">Lavori Vinti</h3>
+                                <span className="bg-emerald-200 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">{privatiOfferte.filter(o => ['accettata', 'convertita_in_cantiere'].includes(o.stato)).length}</span>
+                            </div>
+                            <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-1 scrollbar-thin">
+                                {privatiOfferte.filter(o => ['accettata', 'convertita_in_cantiere'].includes(o.stato)).map(o => (
+                                    <div key={o.id} onClick={() => { setSelectedOfferta(o); setViewMode('workspace_privato'); }} className="bg-white p-4 rounded-xl shadow-sm border border-emerald-200 cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all group">
+                                        <p className="text-[10px] text-emerald-600 font-bold uppercase mb-1">{clients.find(c => c.id === o.clienteId)?.ragioneSociale || 'Cliente'}</p>
+                                        <p className="font-bold text-slate-800 text-sm leading-tight mb-2 group-hover:text-emerald-700">{o.nomeOfferta}</p>
+                                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-emerald-50">
+                                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-500 bg-emerald-100 px-2 py-0.5 rounded">{o.stato === 'convertita_in_cantiere' ? 'In Cantiere' : 'Vinto'}</span>
+                                            {o.valoreChiusura && <span className="text-xs font-black text-emerald-700">€ {o.valoreChiusura}</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="min-w-[300px] w-[300px] bg-red-50 rounded-2xl p-3 flex flex-col snap-start opacity-70 hover:opacity-100 transition-opacity">
+                            <div className="flex justify-between items-center mb-3 px-1">
+                                <h3 className="text-xs font-black text-red-500 uppercase tracking-widest">Persi / Rifiutati</h3>
+                                <span className="bg-red-200 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded-full">{privatiOfferte.filter(o => ['rifiutata', 'archiviata'].includes(o.stato)).length}</span>
+                            </div>
+                            <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-1 scrollbar-thin">
+                                {privatiOfferte.filter(o => ['rifiutata', 'archiviata'].includes(o.stato)).map(o => (
+                                    <div key={o.id} onClick={() => { setSelectedOfferta(o); setViewMode('workspace_privato'); }} className="bg-white p-4 rounded-xl shadow-sm border border-red-100 cursor-pointer hover:border-red-300 transition-all">
+                                        <p className="text-[10px] text-red-500 font-bold uppercase mb-1 line-through">{clients.find(c => c.id === o.clienteId)?.ragioneSociale || 'Cliente'}</p>
+                                        <p className="font-bold text-slate-600 text-sm leading-tight mb-2">{o.nomeOfferta}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

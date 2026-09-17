@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useFirebaseData } from '../context/FirebaseContext';
 
-export const useNoteOperativeManager = () => {
-    const { db, storage, user, userAziendaId } = useFirebaseData();
+
+export const useNoteOperativeManager = (db, storage, user, userAziendaId) => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
-
+    
     // Funzione per ottenere la geolocalizzazione
     const getCurrentLocation = () => {
         return new Promise((resolve, reject) => {

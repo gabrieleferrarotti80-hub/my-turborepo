@@ -16,6 +16,8 @@ import {
     materialeSchema,
     notaOperativaSchema,
     offertaSchema,
+    programmazioneSchema,
+    catalogoRisorseSchema
 } from './schemas.js';
 
 /**
@@ -23,13 +25,22 @@ import {
  * Applica lo schema di default ai dati in entrata e converte i Timestamp in oggetti Date.
  */
 function parseFromFirestore(firestoreData, schema) {
-    // Il dato grezzo da Firestore è già stato estratto in '../context/shared-core/context/FirebaseContext.jsx', quindi firestoreData è un oggetto { id, ...data }
     const mergedData = { ...schema, ...firestoreData };
 
     for (const key in mergedData) {
+        // 1. Converte i Timestamp (logica esistente)
         if (mergedData[key]?.toDate instanceof Function) {
             mergedData[key] = mergedData[key].toDate();
         }
+        
+        // --- ✅ INIZIO CORREZIONE ---
+        // 2. Pulisce TUTTE le stringhe
+        // Questo rimuove spazi bianchi e "a capo" (come '\n')
+        // all'inizio o alla fine di qualsiasi campo stringa.
+        if (typeof mergedData[key] === 'string') {
+            mergedData[key] = mergedData[key].trim();
+        }
+        // --- FINE CORREZIONE ---
     }
     
     return mergedData;
@@ -56,6 +67,7 @@ export const formatForFirestore = (localData, schema) => {
     }
     return dataToWrite;
 };
+
 
 // --- Esportazioni delle Funzioni di Parsing ---
 
@@ -137,4 +149,44 @@ export const parseNotaOperativa = (data) => {
         nota.createdAt = nota.createdAt.toDate();
     }
     return nota;
+};
+//export const parseFasiCantiere = (data) => parseFromFirestore(data, fasiCantiereSchema);
+
+export const parseProgrammazione = (data) => parseFromFirestore(data, programmazioneSchema);
+
+export const parseFattura = (data) => {
+    if (!data) return null;
+
+    return {
+        ...data,
+        // Converti i Timestamp di Firestore in oggetti Date nativi per evitare errori in React
+        dataEmissione: data.dataEmissione && data.dataEmissione.toDate ? data.dataEmissione.toDate() : (data.dataEmissione ? new Date(data.dataEmissione) : null),
+        scadenzaPagamento: data.scadenzaPagamento && data.scadenzaPagamento.toDate ? data.scadenzaPagamento.toDate() : (data.scadenzaPagamento ? new Date(data.scadenzaPagamento) : null),
+        createdAt: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : null,
+        updatedAt: data.updatedAt && data.updatedAt.toDate ? data.updatedAt.toDate() : null,
+        
+        // Assicuriamoci che i totali siano numeri
+        imponibile: Number(data.imponibile || 0),
+        importoIva: Number(data.importoIva || 0),
+        totaleDocumento: Number(data.totaleDocumento || 0),
+        
+        // Assicuriamoci che le righe siano un array
+        righe: Array.isArray(data.righe) ? data.righe : []
+    };
+};
+
+export const parseCatalogoRisorse = (data) => parseFromFirestore(data, catalogoRisorseSchema);
+
+// ✅ Parser Generico (utile per Fornitori e Fatture Acquisto)
+export const parseGeneric = (data) => {
+    if (!data) return null;
+    // Converte eventuali timestamp in date leggibili, se ci sono
+    const parsed = { ...data };
+    if (parsed.createdAt?.toDate) parsed.createdAt = parsed.createdAt.toDate();
+    if (parsed.updatedAt?.toDate) parsed.updatedAt = parsed.updatedAt.toDate();
+    // Per le fatture acquisto
+    if (parsed.dataFattura?.toDate) parsed.dataFattura = parsed.dataFattura.toDate();
+    if (parsed.dataScadenza?.toDate) parsed.dataScadenza = parsed.dataScadenza.toDate();
+    
+    return parsed;
 };

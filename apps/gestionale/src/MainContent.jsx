@@ -1,121 +1,181 @@
-// File: apps/gestionale/src/MainContent.jsx
+// MainContent.jsx
 
-import React from 'react';
-import { useAgendaManager, useDocumentiManager } from 'shared-core';
-import { AgendaContent } from 'shared-ui';
-import { DocumentiContent } from './components/DocumentiContent.jsx';
-import { CompaniesContent } from './CompaniesContent.jsx';
-import { PersonnelContent } from './PersonnelContent.jsx';
-import { ClientsContent } from './ClientsContent.jsx';
-import { MagazzinoDashboardLayout } from './components/MagazzinoDashboardLayout.jsx';
-import { ProgettiContent } from './ProgettiContent.jsx';
-import { AggiungiCantiereForm } from './AggiungiCantiereForm.jsx';
-import { AssegnaCantiereForm } from './AssegnaCantiereForm.jsx';
-import { CantiereDashboard } from './CantiereDashboard.jsx';
-import { GestioneAziendeAdminView } from './components/GestioneAziendeAdminView.jsx';
-import { OfferteContent } from './components/OfferteContent.jsx';
+import React, { Suspense } from 'react';
+import { useFirebaseData } from 'shared-core';
 
-export const MainContent = ({ activeView, onNavigate, firebaseData, operativeView, onOperativeNavigate }) => {
-    
-    // Clausola di salvaguardia fondamentale per prevenire crash durante il caricamento
-    if (!firebaseData || firebaseData.loadingData) {
-        return (
-            <main className="p-6 md:p-8 overflow-y-auto bg-gray-100 flex-grow">
-                <h1 className="text-xl font-semibold text-gray-700">Caricamento dati...</h1>
-            </main>
-        );
-    }
-    
-    // Estrazione sicura dei dati dall'oggetto 'firebaseData' ricevuto come prop
-    const { 
-        data: innerData,
-        user, 
-        userRole, 
-        companyID, 
-        db, 
-        storage,
-        loadingData
-    } = firebaseData;
+// View Imports - Titolare / Azienda
+import { AgendaContent } from 'shared-ui'; 
+import { ClientDetailView } from 'shared-ui';
+import { OffertaWorkspaceView } from 'shared-ui/views/OffertaWorkspaceView'; 
+import { PersonnelDetailView } from 'shared-ui/views/PersonnelDetailView'; 
+import { DashboardRouter } from './components/dashboard/DashboardRouter'; 
+import { MagazzinoDashboardLayout } from './components/MagazzinoDashboardLayout'; 
 
-    // Estrazione sicura delle collezioni, con un fallback a un array vuoto
-    const { eventi = [], documenti = [], scadenze = [], users = [], clients = [] } = innerData || {};
+// Questi sono DEFAULT (senza graffe)
+import ProgrammazioneManagerView from './views/ProgrammazioneManagerView'; 
+import CantieriManagerView from './views/CantieriManagerView'; 
+import SicurezzaManagerView from './views/SicurezzaManagerView';
 
-    // Inizializzazione corretta degli hook manager
-    // L'hook agendaManager contiene tutti i calcoli di stato (currentDate, daysInMonth, filteredEvents, handlers)
-    const agendaManager = useAgendaManager(firebaseData); 
-    const { deleteDocumento } = useDocumentiManager(db, storage, companyID, user);
+import { CantiereReportOverview } from 'shared-ui/views/CantiereReportOverview';
+import { OfferteContent } from './components/OfferteContent';
+import { FatturazioneContent } from './components/fatturazione/FatturazioneContent';
+import { DocumentiContent } from './components/DocumentiContent';
+import { AnalisiCommessaContent } from './components/analisi/AnalisiCommessaContent';
+import { ScadenziarioDashboard } from 'shared-ui/components/ScadenziarioDashboard';
 
-    const renderContent = () => {
-        switch (activeView) {
-            case 'offerte':
-                return <OfferteContent onNavigateBack={() => onNavigate('dashboard')} selectedCompanyId={companyID} />;
+import { PresenzeDashboard } from './components/PresenzeDashboard';
 
-            case 'agenda':
-                return (
-                    <AgendaContent
-                        // ✅ Passa TUTTO lo stato calcolato dal manager 
-                        {...agendaManager} 
-                        
-                        // ✅ Passa i dati di base grezzi estratti dal contesto (per i filtri/dettagli)
-                        events={eventi} 
-                        documents={documenti} 
-                        users={users}
-                        loadingData={loadingData}
-                        user={user} 
-                        userRole={userRole}
-                        // Non è più necessario passare onConfirmEvent/onRejectEvent, sono già in {...agendaManager}
-                    />
-                );
+import { GestioneManutenzioniView } from 'shared-ui/components/GestioneManutenzioniView';
+import { ManutenzioniContent } from './components/manutenzioni/ManutenzioniContent';
+import { GestioneFerieView as HRManagerView } from 'shared-ui/components/GestioneFerieView'; 
+import { CatalogoSettingsContent } from './components/CatalogoSettingsContent';
+import { ListiniManager } from './components/gestione avanzata gare/ListiniManager';
 
-            case 'documenti':
-                return (
-                    <DocumentiContent
-                        documenti={documenti}
-                        onDeleteDocumento={deleteDocumento}
-                    />
-                );
+// View Imports - Fornitori & Acquisti
+import { AcquistiContent } from './components/fornitori/AcquistiContent';
+import { AlboFornitoriContent } from './components/fornitori/AlboFornitoriContent';
+import { SubappaltatoriContent } from './components/fornitori/SubappaltatoriContent';
+import { NoleggiatoriContent } from './components/fornitori/NoleggiatoriContent';
+import { ComparatorePrezzi } from './components/ComparatorePrezzi';
+import { GestioneRDOContent } from './components/fornitori/GestioneRDOContent';
+import { OrdiniAcquistoContent } from './components/fornitori/OrdiniAcquistoContent';
+
+// View Imports - SuperAdmin
+import { CompaniesContent } from './CompaniesContent'; 
+import { GestioneAziendeAdminView } from './components/super-admin/GestioneAziendeAdminView'; 
+import { BackupContent } from './components/admin/BackupContent';
+import { AutorizzazioniFormView } from './components/AutorizzazioniFormView'; 
+import { GestionePermessiView } from './components/GestionePermessiView'; 
+
+// 🌟 AGGIUNTO L'IMPORT DELLA DASHBOARD BIG DATA
+import { BigDataAnalytics } from './components/super-admin/BigDataAnalytics'; 
+
+// Basic Views
+import { PersonnelContent } from './PersonnelContent';
+import { ClientsContent } from './ClientsContent';
+import { SettingsContent } from './components/SettingsContent';
+import { AreaClientiAdmin } from './components/AreaClientiAdmin'; 
+
+// 🌟 AGGIUNTO L'IMPORT DELLA VISTA DI TEST
+import { TestPianificazione } from './test/TestPianificazione';
+
+import { SimulatoreGareView } from 'shared-ui/views/SimulatoreGareView.jsx';
+
+
+export const MainContent = ({ currentView, onNavigate }) => {
+    const { user, isSuperAdminView } = useFirebaseData();
+
+    console.log("🚀 VISTA RICHIESTA AL MAIN CONTENT:", currentView);
+
+    const renderView = () => {
+        
+        // 🌟 FORZIAMO LO SWITCH PER VEDERE SUBITO IL TEST
+        // Quando hai finito, cambia 'test-piano' di nuovo in: currentView || 'dashboard'
+       // switch ('test-piano') {
+          switch (currentView || 'dashboard') {
             
-            case 'gestione-aziende':
-            case 'aziende':
-                return <CompaniesContent />;
-            case 'personale':
-                return <PersonnelContent />;
+            case 'test-piano':
+                return <TestPianificazione />;
+
+            case 'dashboard':
+                return <DashboardRouter onNavigate={onNavigate} />;
+            case 'agenda':
+                return <AgendaContent onNavigate={onNavigate} />;
+            case 'area-clienti-admin':
+                return <AreaClientiAdmin />;
             case 'clienti':
-                return <ClientsContent />;
+                return <ClientsContent onNavigate={onNavigate} />;
+            case 'client-detail':
+                return <ClientDetailView onBack={() => onNavigate('clienti')} onNavigate={onNavigate} />;
+            case 'personale':
+                return <PersonnelContent onNavigate={onNavigate} />;
+            case 'personnel-detail':
+                return <PersonnelDetailView onBack={() => onNavigate('personale')} />;
+            case 'gestione-ferie':
+                return <HRManagerView />;
             case 'magazzino':
-                return <MagazzinoDashboardLayout onBack={() => onNavigate('dashboard')} />;
-            case 'projects':
-                return <ProgettiContent userAziendaId={companyID} />;
-            case 'add-cantiere':
-                return <AggiungiCantiereForm onNavigate={onNavigate} />;
-            case 'assign-cantiere':
-                return <AssegnaCantiereForm onNavigate={onNavigate} />;
+                return <MagazzinoDashboardLayout />;
             case 'gestione-operativa':
-                return <CantiereDashboard activeView={operativeView} onNavigate={onOperativeNavigate} userAziendaId={companyID} />;
+                return <CantieriManagerView />;
+            case 'programmazione':
+                return <ProgrammazioneManagerView onNavigate={onNavigate} />;
+            case 'report_cantiere':
+                return <CantiereReportOverview onNavigate={onNavigate} />;
+            case 'documenti':
+                return <DocumentiContent />;
+            case 'impostazioni':
+            case 'settings':
+                return <SettingsContent />;
+            case 'offerte':
+                 return <OfferteContent />;
+            case 'offerta-workspace':
+                return <OffertaWorkspaceView onBack={() => onNavigate('offerte')} />;
+            case 'fatturazione':
+                return <FatturazioneContent />;
+            case 'scadenziario-globale':
+                return <ScadenziarioDashboard />;
+            case 'acquisti':
+                return <AcquistiContent />;
+            case 'albo-fornitori':
+                return <AlboFornitoriContent />;
+            case 'subappaltatori':
+                return <SubappaltatoriContent />;
+            case 'noleggiatori':
+                return <NoleggiatoriContent />;
+            case 'comparatore-prezzi':
+                return <ComparatorePrezzi />;
+            case 'richieste-offerta':
+                return <GestioneRDOContent />;
+            case 'ordini-acquisto':
+                return <OrdiniAcquistoContent />;
+            case 'analisi-commessa':
+                return <AnalisiCommessaContent />;
+            case 'presenze':
+                return <PresenzeDashboard />;
+            case 'manutenzioni-view':
+                return <GestioneManutenzioniView onNavigate={onNavigate} />;
+            case 'manutenzioni-mezzi':
+                return <ManutenzioniContent />;
+            case 'sicurezza':
+                return <SicurezzaManagerView />;
+            case 'catalogo-risorse':
+                return <CatalogoSettingsContent />;
+            case 'listini':
+                return <ListiniManager />;
+
+            // --- VISTE SUPERADMIN ---
+            case 'aziende':
             case 'admin-aziende':
                 return <GestioneAziendeAdminView onBack={() => onNavigate('dashboard')} />;
-
+            case 'backup':
+                return <BackupContent />;
+            case 'form-auth':
+                return <AutorizzazioniFormView />;
+            case 'gestione-permessi': 
+                return <GestionePermessiView />;
+            case 'simulatore':
+                return <SimulatoreGareView onExit={() => onNavigate('dashboard')} />;
+            case 'big-data':
+                return <BigDataAnalytics />;
+            
             default:
                 return (
-                    <div>
-                        <h1 className="text-2xl font-bold mb-4">Dashboard Principale</h1>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="p-4 bg-white rounded shadow"><h3 className="font-bold">Clienti</h3><p className="text-3xl">{clients?.length ?? '...'}</p></div>
-                            <div className="p-4 bg-white rounded shadow"><h3 className="font-bold">Personale</h3><p className="text-3xl">{users?.length ?? '...'}</p></div>
-                            <div className="p-4 bg-white rounded shadow"><h3 className="font-bold">Eventi in Agenda</h3><p className="text-3xl">{eventi?.length ?? '...'}</p></div>
+                    <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-fade-in">
+                        <div className="bg-slate-100 p-6 rounded-2xl border border-slate-200 max-w-md">
+                            <h2 className="text-xl font-bold text-slate-800 mb-2">Vista In Sviluppo</h2>
+                            <p className="text-slate-600 mb-4">La sezione <span className="font-mono bg-slate-200 px-2 py-1 rounded text-indigo-600">{currentView}</span> non è stata ancora implementata.</p>
+                            <button onClick={() => onNavigate('dashboard')} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-indigo-700 transition-colors">
+                                Torna alla Dashboard
+                            </button>
                         </div>
                     </div>
                 );
         }
     };
 
-    if (activeView === 'magazzino') {
-        return renderContent();
-    }
-
     return (
-        <main className="p-6 md:p-8 overflow-y-auto bg-gray-100 flex-grow">
-            {renderContent()}
-        </main>
+        <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>}>
+            {renderView()}
+        </Suspense>
     );
 };

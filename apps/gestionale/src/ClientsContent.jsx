@@ -1,16 +1,22 @@
 // apps/gestionale/src/components/ClientsContent.jsx
 
 import React, { useState, useMemo } from 'react';
-import { UserPlusIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
+import { 
+    UserPlusIcon, 
+    ArrowUpTrayIcon, 
+    MagnifyingGlassIcon, 
+    EnvelopeIcon, 
+    PhoneIcon, 
+    BuildingOffice2Icon
+} from '@heroicons/react/24/outline';
 import { useFirebaseData } from 'shared-core';
 import { AddClientForm } from './AddClientForm.jsx';
 import { ClientDetailView } from 'shared-ui';
 import ImportClients from './ImportExcell/ImportClients.jsx';
 
 export const ClientsContent = () => {
-    // ✅ Lettura dati standardizzata dal contesto
     const { data, companyID, userRole, loadingData } = useFirebaseData();
-    const { clients, companies } = data || {};
+    const { clients = [], companies = [], cantieri = [], sal = [] } = data || {};
 
     const [viewMode, setViewMode] = useState('list');
     const [selectedClient, setSelectedClient] = useState(null);
@@ -19,124 +25,131 @@ export const ClientsContent = () => {
     const showCompanyColumn = userRole === 'proprietario' && companyID === null;
 
     const companyNameMap = useMemo(() => {
-        if (!companies) return new Map();
         return new Map(companies.map(company => [company.id, company.companyName]));
     }, [companies]);
 
     const filteredClients = useMemo(() => {
-        if (!clients) return [];
-        
-        // ✅ Logica di filtraggio corretta che gestisce il "super admin"
         const isSuperAdmin = userRole === 'proprietario' && companyID === null;
+        const clientsByCompany = isSuperAdmin ? clients : clients.filter(c => c.companyID === companyID);
 
-        const clientsByCompany = isSuperAdmin
-            ? clients
-            : clients.filter(client => client.companyID === companyID);
-
-        if (!searchTerm) return clientsByCompany;
+        if (!searchTerm) return clientsByCompany.sort((a, b) => (a.ragioneSociale || a.nome || '').localeCompare(b.ragioneSociale || b.nome || ''));
         
+        const term = searchTerm.toLowerCase();
         return clientsByCompany.filter(c =>
-            (c.ragioneSociale || `${c.nome} ${c.cognome}`)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.referente?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.referente?.telefono?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.sedeLegale?.via?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.sedeLegale?.citta?.toLowerCase().includes(searchTerm.toLowerCase())
+            (c.ragioneSociale || '').toLowerCase().includes(term) ||
+            (c.nome || '').toLowerCase().includes(term) ||
+            (c.cognome || '').toLowerCase().includes(term) ||
+            (c.piva || '').includes(term) ||
+            (c.email || '').toLowerCase().includes(term)
         );
     }, [clients, userRole, companyID, searchTerm]);
 
     const canWrite = userRole === 'proprietario' ? !!companyID : true;
 
-    // Gestori di eventi (invariati)
-    const handleSelectClient = (client) => {
+    const handleAction = (mode, client = null) => {
         setSelectedClient(client);
-        setViewMode('detail');
-    };
-    const handleEditClient = (client) => {
-        setSelectedClient(client);
-        setViewMode('edit');
-    };
-    const handleBackToList = () => {
-        setSelectedClient(null);
-        setViewMode('list');
+        setViewMode(mode);
     };
 
-    if (loadingData) {
-        return <div className="text-center p-8">Caricamento dei clienti...</div>;
+    if (loadingData) return <div className="p-10 text-center animate-pulse font-bold text-slate-400">Caricamento anagrafiche...</div>;
+
+    if (viewMode === 'import') return <ImportClients companyIdToAdd={companyID} onBack={() => setViewMode('list')} />;
+    
+    if (viewMode === 'detail' && selectedClient) {
+        return (
+            <ClientDetailView 
+                client={selectedClient} 
+                cantieri={cantieri} 
+                salList={sal} 
+                onBack={() => setViewMode('list')} 
+                onEdit={(c) => handleAction('edit', c)} 
+            />
+        );
     }
-    if (viewMode === 'import') {
-        return <ImportClients companyIdToAdd={companyID} onBack={handleBackToList} />;
-    }
-    if (viewMode === 'detail') {
-        return <ClientDetailView client={selectedClient} onBack={handleBackToList} onEdit={handleEditClient} />;
-    }
-    if (viewMode === 'edit') {
-        return <AddClientForm existingData={selectedClient} onBack={handleBackToList} />;
-    }
-    if (viewMode === 'add') {
-        return <AddClientForm companyIdToAdd={companyID} onBack={handleBackToList} />;
+    
+    if (viewMode === 'add' || viewMode === 'edit') {
+        return <AddClientForm existingData={selectedClient} companyIdToAdd={companyID} onBack={() => setViewMode('list')} />;
     }
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-col md:flex-row justify-between items-center">
-                <h1 className="text-3xl font-bold text-gray-800">Gestione Clienti</h1>
-                <div className="flex gap-4 mt-4 md:mt-0">
-                    <button onClick={() => canWrite && setViewMode('import')} disabled={!canWrite} className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg shadow-md transition-colors ${canWrite ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-400 cursor-not-allowed'}`}>
+        <div className="container mx-auto space-y-6 animate-fade-in">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div>
+                    <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                        <BuildingOffice2Icon className="h-8 w-8 text-indigo-600"/>
+                        Anagrafica Clienti
+                    </h1>
+                    <p className="text-slate-500 text-sm font-medium">Seleziona un cliente per visualizzare i dettagli, i referenti e lo storico cantieri.</p>
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={() => setViewMode('import')} disabled={!canWrite} className="px-4 py-2.5 bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-slate-100 transition-all">
                         <ArrowUpTrayIcon className="h-5 w-5" /> Importa
                     </button>
-                    <button onClick={() => canWrite && setViewMode('add')} disabled={!canWrite} className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg shadow-md transition-colors ${canWrite ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'}`}>
+                    <button onClick={() => handleAction('add')} disabled={!canWrite} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-indigo-700 shadow-md transition-all">
                         <UserPlusIcon className="h-5 w-5" /> Nuovo Cliente
                     </button>
                 </div>
             </div>
-            {!canWrite && userRole === 'proprietario' && (
-                <div className="bg-yellow-100 text-yellow-800 p-3 rounded-lg text-center">
-                    Seleziona un'azienda per gestire i clienti.
-                </div>
-            )}
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="p-4">
-                    <input type="text" placeholder="Cerca per nome, contatto o indirizzo..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full px-4 py-2 border rounded-lg" />
-                </div>
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            {showCompanyColumn && (
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Azienda</th>
-                            )}
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contatti</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Indirizzo</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredClients.map(client => {
-                            const displayName = client.ragioneSociale || `${client.nome} ${client.cognome}`;
-                            const email = client.referente?.email || 'N/D';
-                            const telefono = client.referente?.telefono || 'N/D';
-                            const indirizzo = [client.sedeLegale?.via, client.sedeLegale?.citta, client.sedeLegale?.cap].filter(Boolean).join(', ') || 'N/D';
 
-                            return (
-                                <tr key={client.id} onClick={() => handleSelectClient(client)} className="cursor-pointer hover:bg-gray-50">
-                                    {showCompanyColumn && (
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {companyNameMap.get(client.companyID) || 'N/D'}
+            <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+                <div className="p-5 border-b border-slate-200 bg-slate-50/50">
+                    <div className="relative max-w-md">
+                        <MagnifyingGlassIcon className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                        <input 
+                            type="text" 
+                            placeholder="Cerca per nome, P.IVA o città..." 
+                            value={searchTerm} 
+                            onChange={(e) => setSearchTerm(e.target.value)} 
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm" 
+                        />
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200">
+                        <thead className="bg-slate-100/70">
+                            <tr>
+                                {showCompanyColumn && <th className="px-6 py-4 text-left text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Azienda</th>}
+                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Cliente / Dati Fiscali</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Contatti</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Località</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-slate-200">
+                            {filteredClients.map(client => {
+                                const displayName = client.ragioneSociale || `${client.nome} ${client.cognome}`;
+                                return (
+                                    <tr 
+                                        key={client.id} 
+                                        onClick={() => handleAction('detail', client)}
+                                        className="hover:bg-indigo-50/50 cursor-pointer transition-colors group"
+                                    >
+                                        {showCompanyColumn && (
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                                                {companyNameMap.get(client.companyID) || 'N/D'}
+                                            </td>
+                                        )}
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{displayName}</span>
+                                                <span className="text-[10px] font-mono text-slate-500 mt-0.5 uppercase">P.IVA/CF: {client.piva || client.cf || '-'}</span>
+                                            </div>
                                         </td>
-                                    )}
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-indigo-600">{displayName}</div>
-                                        <div className="text-xs text-gray-500">{client.piva || client.cf}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{telefono}</div>
-                                        <div className="text-sm text-gray-500 truncate">{email}</div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{indirizzo}</td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col gap-1">
+                                                {client.referente?.email && <span className="text-xs text-slate-600 flex items-center gap-1.5"><EnvelopeIcon className="h-3.5 w-3.5 opacity-60"/> {client.referente.email}</span>}
+                                                {client.referente?.telefono && <span className="text-xs text-slate-600 flex items-center gap-1.5"><PhoneIcon className="h-3.5 w-3.5 opacity-60"/> {client.referente.telefono}</span>}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-xs font-semibold text-slate-600 uppercase tracking-tight">{client.sedeLegale?.citta || 'N/D'}</span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

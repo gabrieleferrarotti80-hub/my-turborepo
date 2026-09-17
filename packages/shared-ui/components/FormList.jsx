@@ -31,7 +31,10 @@ export const FormList = ({ forms, loading, error, onSelectForm }) => {
                         className="flex items-center p-4 bg-gray-50 rounded-lg shadow cursor-pointer hover:bg-gray-100 transition-colors duration-200"
                     >
                         <FontAwesomeIcon icon={faFileAlt} className="text-indigo-500 mr-4 text-xl" />
-                        <span className="font-medium text-lg text-gray-700">{form.name || form.id}</span>
+                       {/* --- ✅ MODIFICA QUI --- */}
+                        {/* Da 'form.name' (inglese) a 'form.nome' (italiano) */}
+                        <span className="font-medium text-lg text-gray-700">{form.nome || form.id}</span>
+                        {/* --- FINE MODIFICA --- */}
                     </div>
                 ))}
             </div>

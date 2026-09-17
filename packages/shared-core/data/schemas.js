@@ -133,6 +133,12 @@ export const attrezzaturaSchema = {
     categoria: '', // es. 'Automezzo', 'DPI', 'Consumabile'
     stato: 'disponibile', // es. 'disponibile', 'in uso', 'in riparazione' (Non si applica ai materiali)
     quantita: 1, // NUOVO CAMPO: 1 per Attrezzatura, N > 1 per Materiale
+    
+    // ✅ CAMPI ECONOMICI UFFICIALIZZATI NELLO SCHEMA
+    costoGiornaliero: 0,
+    costoOrario: 0,
+    costoAcquisto: 0,
+
     dettagli: {},
     companyID: '',
     createdAt: Timestamp.now(),
@@ -178,6 +184,7 @@ export const cantiereSchema = {
     companyID: '',
     companyName: '', // Denormalizzato
     stato: 'attivo', // Valori: 'attivo', 'in pausa', 'completato'
+    offertaId: null,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
 };
@@ -192,6 +199,24 @@ export const subcantiereSchema = {
     cantiereGenitoreId: '',
     companyID: '',
     createdAt: Timestamp.now(),
+    stato: 'da_programmare', // 'da_programmare', 'programmato', 'in_corso', 'completato'
+    
+    // Per la pianificazione Gantt
+    dipendeDa: null, // ID di un altro subcantiere (per dipendenze)
+    
+    // Per il Form di Pianificazione
+    durataStimata: 8, // Durata stimata in ORE
+    risorseRichieste: {
+        personale: [], // Array di ID utente
+        automezzi: [], // Array di ID attrezzatura
+        attrezzature: [], // Array di ID attrezzatura
+    },
+    
+    // Per la consuntivazione (Suggerimento 3)
+    budgetStimato: 0 // Costo calcolato dal JobPlannerForm
+    
+    // --- FINE AGGIUNTE ---
+
 };
 
 /**
@@ -199,20 +224,20 @@ export const subcantiereSchema = {
  */
 export const assegnazioneCantiereSchema = {
     cantiereId: '',
-    nomeCantiere: '', // Denormalizzato
+    nomeCantiere: '', 
+    teamMemberIds: [], 
+    team: [], 
+    automezziIds: [], 
+    companyID: '', 
+    assegnatoDaId: '', 
+    dataAssegnazione: Timestamp.now(), 
+    stato: 'attiva', 
+    dataInizio: null,
+    dataFine: null,
 
-    // CAMPO UNIFICATO PER LA RICERCA VELOCE (un array di ID utente)
-    teamMemberIds: [], // Es: ['uid_preposto', 'uid_operaio1', 'uid_titolare_se_serve']
-    
-    // CAMPO UNIFICATO PER I DETTAGLI (un array di oggetti)
-    // Utile per visualizzare nomi e ruoli senza query aggiuntive.
-    team: [], // Es: [{ userId: '...', nome: 'Mario Rossi', ruolo: 'preposto' }, { ... }]
-
-    automezziIds: [],
-    companyID: '',
-    assegnatoDaId: '',
-    dataAssegnazione: Timestamp.now(),
-    stato: 'attiva',
+    // --- ✅ NUOVI CAMPI TRACCIABILITÀ ---
+    updatedAt: null, // Timestamp dell'ultima modifica
+    updatedBy: null, // UID dell'utente che ha modificato
 };
 
 /**
@@ -336,4 +361,37 @@ export const notaOperativaSchema = {
     createdAt: null,
     companyID: '',
     userID: '',
+};
+
+/*export const fasiCantiereSchema = {
+    companyID: null,
+    cantiereId: null,
+    nome: '',
+    stato: 'da_programmare', // 'da_programmare', 'programmato', 'completato'
+};
+*/
+export const programmazioneSchema = {
+    companyID: null,
+    cantiereId: null,
+    faseId: null, // L'ID della fase da 'fasi_cantiere'
+    titolo: '',
+    dataInizio: null, // Sarà un Timestamp
+    dataFine: null,   // Sarà un Timestamp
+    stato: 'bozza',   // 'bozza', 'conflitto_risorsa', 'confermato'
+    risorseAssegnate: {
+        personale: [], // Array di ID utente
+        automezzi: [], // Array di ID attrezzatura (tipo 'automezzo')
+        attrezzature: [], // Array di ID attrezzatura
+    },
+    noteOperative: '',
+    dipendeDa: null, // ID di un altro task 'programmazione'
+};
+
+export const catalogoRisorseSchema = {
+    companyID: '',
+    tipoArticolo: 'materiale', // 'materiale', 'nolo', 'attrezzatura', 'subappalto'
+    macroCategoria: '',        // es. "Mezzi di Sollevamento" o "Materiali Edili"
+    famiglia: '',              // es. "Piattaforme" o "Leganti"
+    voci: [],                  // Array di stringhe: ["Autocarrata 20m", "Autocarrata 24m"]
+    createdAt: null,
 };

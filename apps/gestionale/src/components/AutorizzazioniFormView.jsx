@@ -59,14 +59,15 @@ export const AutorizzazioniFormView = () => {
  	 	 	 	 	 	</tr>
  	 	 	 	 	</thead>
  	 	 	 	 	<tbody className="bg-white divide-y divide-gray-200">
-                        {/* Questo .map ora funzionerà perché 'forms' è un array */}
  	 	 	 	 	 	{(forms && forms.length > 0) ? (
  	 	 	 	 	 	 	forms.map((form) => (
  	 	 	 	 	 	 	 	<tr key={form.id} className="hover:bg-gray-50">
- 	 	 	 	 	 	 	 	 	{/* --- USA SEMPRE form.id --- */}
- 	 	 	 	 	 	 	 	 	<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{form.id}</td>
- 	 	 	 	 	 	 	 	 	{/* Mantiene il placeholder */}
- 	 	 	 	 	 	 	 	 	<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
+ 	 	 	 	 	 	 	 	 	{/* --- ✅ MODIFICA CAMPI LETTI --- */}
+                                    {/* Leggiamo 'form.nome' che proviene dal parser */}
+ 	 	 	 	 	 	 	 	 	<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{form.nome || form.id}</td>
+                                    {/* Leggiamo 'form.descrizione' */}
+ 	 	 	 	 	 	 	 	 	<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{form.descrizione || '-'}</td>
+ 	 	 	 	 	 	 	 	 	{/* --- FINE MODIFICA --- */}
  	 	 	 	 	 	 	 	 	<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
  	 	 	 	 	 	 	 	 	 	<button onClick={() => setSelectedForm(form)} className="text-indigo-600 hover:text-indigo-900">
  	 	 	 	 	 	 	 	 	 	 	Gestisci / Modifica

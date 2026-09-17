@@ -1,93 +1,175 @@
-// packages/shared-core/hooks/useAssegnazioniManager.jsx
+import { useState } from 'react';
+import { doc, updateDoc, arrayUnion, serverTimestamp, deleteField } from 'firebase/firestore';
 
-import { doc, updateDoc, runTransaction, arrayUnion, Timestamp } from 'firebase/firestore';
-
-// ✅ Hook aggiornato, ora solo per le AZIONI dell'utente finale.
 export const useAssegnazioniManager = (db, user) => {
+    const [isLoading, setIsLoading] = useState(false);
 
-    // ❌ RIMOSSO: La funzione 'fetchUserAssignments' è stata rimossa. 
-    // I dati ora provengono da useFirebaseData().userAssegnazioni.
+    // =========================================================
+    // 👷 AZIONI UTENTE (App Mobile - Preposto/Operaio)
+    // =========================================================
 
-    // L'utente conferma di aver ricevuto l'attrezzatura
+    // 1. Conferma ricezione (Da "Da Confermare" -> "In Uso")
     const confermaPresaInCarico = async (assegnazioneId) => {
-        const assegnazioneRef = doc(db, 'assegnazioniMagazzino', assegnazioneId);
-        const evento = { 
-            timestamp: Timestamp.now(), 
-            statoPrecedente: 'da confermare', 
-            statoNuovo: 'in uso', 
-            utente: user.uid, 
-            note: 'Presa in carico confermata dall\'utente.' 
-        };
+        setIsLoading(true);
         try {
-            await updateDoc(assegnazioneRef, { 
+            const ref = doc(db, 'assegnazioniMagazzino', assegnazioneId);
+            await updateDoc(ref, { 
                 statoWorkflow: 'in uso',
-                dataConferma: Timestamp.now(),
-                storico: arrayUnion(evento) 
+                stato: 'in uso', // ✅ FIX: Allineato lo stato principale
+                confermaRicezione: true, // ✅ FIX: Coerenza booleana
+                dataConferma: serverTimestamp(),
+                storico: arrayUnion({
+                    timestamp: new Date(),
+                    stato: 'in uso',
+                    azione: 'Conferma Ricezione',
+                    autore: user?.uid || 'unknown'
+                })
             });
-            return { success: true, message: "Presa in carico confermata." };
+            return { success: true, message: "Dotazione confermata." };
         } catch (error) {
+            console.error(error);
             return { success: false, message: error.message };
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    // L'utente richiede di poter restituire l'attrezzatura
-    const richiediRestituzione = async (assegnazione, note) => {
-        const assegnazioneRef = doc(db, 'assegnazioniMagazzino', assegnazione.id);
-        const evento = { 
-            timestamp: Timestamp.now(), 
-            statoPrecedente: 'in uso', 
-            statoNuovo: 'restituzione richiesta', 
-            utente: user.uid, 
-            note: `Richiesta di restituzione: ${note || 'Nessuna nota.'}`
-        };
+    // 2. Richiedi Restituzione (Da "In Uso" -> "Restituzione Richiesta")
+    const richiediRestituzione = async (item, note = '') => {
+        setIsLoading(true);
         try {
-            // ✅ Mantenuta logica da useRiconsegneManager per coerenza
-            await runTransaction(db, async (t) => t.update(assegnazioneRef, {
+            const id = item.id || item; 
+            const ref = doc(db, 'assegnazioniMagazzino', id);
+            
+            await updateDoc(ref, {
                 statoWorkflow: 'restituzione richiesta',
-                storico: arrayUnion(evento)
-            }));
+                stato: 'restituzione richiesta', // ✅ FIX
+                noteRestituzione: note, 
+                dataRichiestaRestituzione: serverTimestamp(),
+                storico: arrayUnion({
+                    timestamp: new Date(),
+                    stato: 'restituzione richiesta',
+                    note: note,
+                    autore: user?.uid || 'unknown'
+                })
+            });
             return { success: true, message: "Richiesta di restituzione inviata." };
         } catch (error) {
             return { success: false, message: error.message };
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    /**
-     * ✅ AGGIORNATO: Un dipendente segnala un guasto/furto per un'assegnazione attiva.
-     * Logica proveniente da useGuastiManager, ora più flessibile.
-     * @param {object} assegnazione - L'oggetto completo dell'assegnazione.
-     * @param {string} tipoSegnalazione - 'guasto segnalato' o 'furto segnalato'.
-     * @param {string} noteAggiuntive - Note opzionali dall'utente.
-     */
-    const segnalaGuasto = async (assegnazione, tipoSegnalazione, noteAggiuntive) => {
-        if (!assegnazione || !assegnazione.id) {
-            return { success: false, message: "Dati dell'assegnazione non validi." };
-        }
-        const assegnazioneRef = doc(db, 'assegnazioniMagazzino', assegnazione.id);
-        const eventoStorico = {
-            timestamp: Timestamp.now(),
-            statoPrecedente: assegnazione.statoWorkflow,
-            statoNuovo: tipoSegnalazione,
-            utente: user.uid,
-            note: `Segnalazione: ${noteAggiuntive || 'Nessuna nota.'}`
-        };
+    // 3. Segnala Guasto (Da "In Uso" -> "Guasto Segnalato")
+    const segnalaGuasto = async (item, note) => {
+        setIsLoading(true);
         try {
-            await runTransaction(db, async (transaction) => {
-                transaction.update(assegnazioneRef, {
-                    statoWorkflow: tipoSegnalazione,
-                    storico: arrayUnion(eventoStorico)
-                });
+            const id = item.id || item;
+            const ref = doc(db, 'assegnazioniMagazzino', id);
+
+            await updateDoc(ref, {
+                statoWorkflow: 'guasto segnalato', 
+                stato: 'guasto segnalato', // ✅ FIX
+                noteGuasto: note,                  
+                dataGuasto: serverTimestamp(),
+                storico: arrayUnion({
+                    timestamp: new Date(),
+                    stato: 'guasto segnalato',
+                    note: note,
+                    autore: user?.uid || 'unknown'
+                })
             });
-            return { success: true, message: "Segnalazione inviata con successo." };
+            return { success: true, message: "Guasto segnalato all'ufficio." };
         } catch (error) {
-            console.error("Errore durante la segnalazione del guasto:", error);
             return { success: false, message: error.message };
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // =========================================================
+    // 👔 AZIONI AMMINISTRAZIONE (Gestionale - Ufficio)
+    // =========================================================
+
+    // 4. Accetta Segnalazione (Da "Guasto Segnalato" -> "In Riparazione")
+    const accettaSegnalazione = async (id) => {
+        setIsLoading(true);
+        try {
+            const ref = doc(db, 'assegnazioniMagazzino', id);
+            await updateDoc(ref, {
+                statoWorkflow: 'in riparazione',
+                stato: 'in riparazione', // ✅ FIX
+                dataPresaInCarico: serverTimestamp()
+            });
+            return { success: true, message: "Articolo mandato in riparazione." };
+        } catch (error) {
+            return { success: false, message: error.message };
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 5. Risolvi Riparazione (Da "In Riparazione" -> "Conclusa/Disponibile")
+    const risolviRiparazione = async (id, esito) => {
+        setIsLoading(true);
+        try {
+            const ref = doc(db, 'assegnazioniMagazzino', id);
+            await updateDoc(ref, {
+                statoWorkflow: 'conclusa', 
+                stato: 'restituito', // ✅ FIX: Segna come restituito per l'HR
+                esitoRiparazione: esito,
+                dataRisoluzione: serverTimestamp(),
+                dataRientro: serverTimestamp(), // ✅ FIX: Inseriamo il rientro
+                noteGuasto: deleteField(),
+                dataGuasto: deleteField()
+            });
+            return { success: true, message: "Riparazione conclusa: articolo rientrato." };
+        } catch (error) {
+            return { success: false, message: error.message };
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 6. Accetta Restituzione (Da "Restituzione Richiesta" -> "Conclusa/Disponibile")
+    const accettaRestituzione = async (assegnazioneId, articoloId) => {
+        setIsLoading(true);
+        try {
+            const assRef = doc(db, 'assegnazioniMagazzino', assegnazioneId);
+            await updateDoc(assRef, {
+                statoWorkflow: 'conclusa',
+                stato: 'restituito', // ✅ FIX: Ora HR sa che è tornato!
+                dataFine: serverTimestamp(),
+                dataRientro: serverTimestamp(), // ✅ FIX: Fondamentale per spostarlo nello "Storico"
+                noteRestituzione: deleteField(), 
+                dataRichiestaRestituzione: deleteField()
+            });
+
+            if (articoloId) {
+                const artRef = doc(db, 'attrezzature', articoloId);
+                await updateDoc(artRef, {
+                    stato: 'disponibile',
+                    assegnatoA: null
+                });
+            }
+
+            return { success: true, message: "Restituzione accettata. Articolo in magazzino." };
+        } catch (error) {
+            console.error(error);
+            return { success: false, message: error.message };
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return {
+        isLoading,
         confermaPresaInCarico,
         richiediRestituzione,
         segnalaGuasto,
+        accettaSegnalazione,
+        risolviRiparazione,
+        accettaRestituzione
     };
 };

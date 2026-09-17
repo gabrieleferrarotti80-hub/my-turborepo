@@ -5,36 +5,18 @@ import { useAgendaAction } from './useAgendaAction.jsx';
 import { useOfferteManager } from './useOfferteManager.jsx'; 
 
 export const useAgendaManager = (data) => {
-    
-    // --- Controlli preliminari e clausola di salvaguardia (INVARIATI) ---
     const user = data?.user;
     const loadingData = data?.loadingData;
 
     if (!data || !user || loadingData) {
         return {
-            loading: true,
-            currentDate: new Date(),
-            monthName: '',
-            year: '',
-            days: [],
-            filteredEvents: [],
-            users: [],
-            userRole: '',
-            canSelectUser: false,
-            selectedUserId: '',
-            isAddModalOpen: false,
-            viewingEvent: null,
-            editingEvent: null,
-            selectedDate: null,
-            onDayClick: () => {},
-            onEventClick: () => {},
-            onEditEvent: () => {},
-            onCloseModal: () => {},
-            setSelectedUserId: () => {},
-            handlePrevMonth: () => {},
-            handleNextMonth: () => {},
-            // ✅ CORRETTO: Aggiunta la funzione onSave mancante al dummy object
-            onSave: async () => ({ success: false, message: "Dati non caricati" }),
+            loading: true, currentDate: new Date(), monthName: '', year: '', days: [],
+            filteredEvents: [], users: [], userRole: '', canSelectUser: false,
+            selectedUserId: '', isAddModalOpen: false, viewingEvent: null,
+            editingEvent: null, selectedDate: null,
+            onDayClick: () => {}, onEventClick: () => {}, onEditEvent: () => {},
+            onCloseModal: () => {}, setSelectedUserId: () => {}, handlePrevMonth: () => {},
+            handleNextMonth: () => {}, onSave: async () => ({ success: false, message: "Dati non caricati" }),
             deleteEvento: async () => ({ success: false, message: "Dati non caricati" }),
             confirmEvento: async () => ({ success: false, message: "Dati non caricati" }),
             rejectEvento: async () => ({ success: false, message: "Dati non caricati" }),
@@ -43,12 +25,17 @@ export const useAgendaManager = (data) => {
         };
     }
 
-    // --- Estrazione dati e init Hook (INVARIATI) ---
-    const { eventi, documenti, users, userRole, db, userAziendaId } = data;
-    const agendaAction = useAgendaAction(db, userAziendaId, user);
-    const offerteManager = useOfferteManager(db, user, userAziendaId); 
+    // Estraggo ANCHE storage dai dati per passarlo a useOfferteManager
+    const { eventi, documenti, users, userRole, db, userAziendaId, storage } = data;
+    
+    console.log("🚨🚨🚨 [DEBUG useAgendaManager] START 🚨🚨🚨");
+    console.log("👉 db ricevuto in useAgendaManager:", db ? "✅ PRESENTE" : "❌ UNDEFINED");
+    console.log("👉 storage ricevuto in useAgendaManager:", storage ? "✅ PRESENTE" : "❌ UNDEFINED");
 
-    // --- Stato UI (useState) (INVARIATO) ---
+    const agendaAction = useAgendaAction(db, userAziendaId, user);
+    // Passo i 4 parametri nell'ordine esatto richiesto dall'hook
+    const offerteManager = useOfferteManager(db, storage, user, userAziendaId); 
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedUserId, setSelectedUserId] = useState('all');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -58,38 +45,94 @@ export const useAgendaManager = (data) => {
     
     const canSelectUser = ['proprietario', 'titolare-azienda', 'amministrazione'].includes(userRole);
 
-    // --- Dati Derivati (useMemo) (INVARIATI) ---
-    console.log("%c[MGR-DEBUG] Check 1: Inizio calcolo useMemo. Date is:", "color: magenta", currentDate);
     const filteredEvents = useMemo(() => { 
         const currentUserId = user?.uid || user?.id;
         const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+        
         let eventsToDisplay = [];
         if (selectedUserId === 'scadenziario') {
-            eventsToDisplay = (documenti || [])
-                .filter(doc => doc.dataScadenza)
-                .map(doc => ({
-                    id: `doc-${doc.id}`,
-                    title: `Scadenza: ${doc.nomeFile}`,
-                    start: doc.dataScadenza,
-                    stato: 'scadenza',
-                    fileURL: doc.fileURL,
+            eventsToDisplay = (documenti || []).filter(doc => doc.dataScadenza).map(doc => ({
+                    id: `doc-${doc.id}`, title: `Scadenza: ${doc.nomeFile}`, start: doc.dataScadenza,
+                    stato: 'scadenza', fileURL: doc.fileURL,
                 }));
         } 
         else {
             eventsToDisplay = (eventi || []).filter(event => {
-                const isForCurrentUser = event.partecipanti?.some(p => p.userId === currentUserId);
+                const isForCurrentUser = 
+                    (event.partecipanti?.some(p => p.userId === currentUserId)) ||
+                    (event.assegnatoA === currentUserId) || 
+                    (event.userId === currentUserId);
+                
                 if (!canSelectUser) return isForCurrentUser;
                 if (selectedUserId === 'all') return true;
-                return event.partecipanti?.some(p => p.userId === selectedUserId);
+                
+                return (event.partecipanti?.some(p => p.userId === selectedUserId)) || 
+                       (event.assegnatoA === selectedUserId) || 
+                       (event.userId === selectedUserId);
             });
         }
-        const eventiFiltratiFinali = eventsToDisplay.filter(event => {
-            if (!event || !event.start) return false;
-            const eventDate = event.start;
-            return eventDate >= startOfMonth && eventDate <= endOfMonth;
+
+        return eventsToDisplay.map(event => {
+            const rawStart = event.start || event.data;
+            const rawEnd = event.end || event.dataFine;
+            const startDate = rawStart?.toDate ? rawStart.toDate() : (rawStart ? new Date(rawStart) : new Date());
+            const endDate = rawEnd?.toDate ? rawEnd.toDate() : (rawEnd ? new Date(rawEnd) : new Date(startDate.getTime() + 60*60*1000));
+            
+            let assegnatarioId = event.assegnatoA;
+            if (!assegnatarioId && event.partecipanti) {
+                 const tech = event.partecipanti.find(p => p.ruolo !== 'organizzatore');
+                 if (tech) assegnatarioId = tech.userId;
+            }
+            if (!assegnatarioId) assegnatarioId = event.userId; 
+
+            const creatoreId = event.createdBy || event.partecipanti?.find(p => p.ruolo === 'organizzatore')?.userId || event.userId;
+            const isMyTask = currentUserId === assegnatarioId;
+            const isOthersTask = assegnatarioId && currentUserId !== assegnatarioId;
+            
+            let statoReale = event.stato;
+            if (!statoReale) {
+                statoReale = (creatoreId && assegnatarioId && creatoreId !== assegnatarioId) ? 'da_confermare' : 'confermato';
+            }
+            
+            let bgColor = '#3b82f6'; 
+            let textColor = '#ffffff';
+            let titlePrefix = '';
+
+            if (statoReale === 'confermato') {
+                if (isOthersTask) { bgColor = '#4f46e5'; titlePrefix = '✓ [Delegato] '; } 
+                else if (isMyTask) { bgColor = '#059669'; } 
+                else { bgColor = '#10b981'; }
+            } 
+            else if (statoReale === 'da_confermare') {
+                if (isMyTask) { bgColor = '#f59e0b'; titlePrefix = '⚠️ [Da Confermare] '; } 
+                else { bgColor = '#cbd5e1'; textColor = '#334155'; titlePrefix = '⏳ [Inviato] '; }
+            } 
+            else if (statoReale === 'modifica_proposta') {
+                const lastAction = event.storico?.length > 0 ? event.storico[event.storico.length - 1] : null;
+                const lastActorId = lastAction ? lastAction.da : creatoreId;
+                
+                if (lastActorId === currentUserId) { bgColor = '#cbd5e1'; textColor = '#334155'; titlePrefix = '⏳ [Proposta inviata] '; } 
+                else { bgColor = '#f59e0b'; titlePrefix = '⚠️ [Modifica Ricevuta] '; }
+            }
+            else if (statoReale === 'rifiutato') {
+                bgColor = '#ef4444'; titlePrefix = '❌ [Annullato] ';
+            }
+
+            return {
+                ...event,
+                title: titlePrefix + (event.title || event.titolo || 'Senza Titolo'),
+                start: startDate,
+                end: endDate,
+                color: bgColor,
+                backgroundColor: bgColor,
+                borderColor: bgColor,
+                textColor: textColor,
+                style: { backgroundColor: bgColor, color: textColor, borderColor: bgColor } 
+            };
+        }).filter(event => {
+            return event.start >= startOfMonth && event.start <= endOfMonth;
         });
-        return eventiFiltratiFinali;
     }, [eventi, documenti, currentDate, selectedUserId, canSelectUser, user, loadingData]);
 
     const daysInMonth = useMemo(() => { 
@@ -104,129 +147,53 @@ export const useAgendaManager = (data) => {
         return daysArray;
     }, [currentDate]);
 
-    // --- Handlers UI (useCallback) (INVARIATI) ---
-    const handleDayClick = useCallback((day) => { 
-        setEditingEvent(null);
-        setSelectedDate(day);
-        setIsAddModalOpen(true);
-    }, []);
-
-    const handleEventClick = useCallback((event) => { 
-        setViewingEvent(event);
-    }, []);
-
-    const handleEditEvent = useCallback((event) => { 
-        setViewingEvent(null);
-        setEditingEvent(event);
-        setIsAddModalOpen(true);
-    }, []);
-
-    const handleCloseModal = useCallback(() => { 
-        setIsAddModalOpen(false);
-        setViewingEvent(null);
-        setEditingEvent(null);
-        setSelectedDate(null);
-    }, []); 
+    const handleDayClick = useCallback((day) => { setEditingEvent(null); setSelectedDate(day); setIsAddModalOpen(true); }, []);
+    const handleEventClick = useCallback((event) => { setViewingEvent(event); }, []);
+    const handleEditEvent = useCallback((event) => { setViewingEvent(null); setEditingEvent(event); setIsAddModalOpen(true); }, []);
+    const handleCloseModal = useCallback(() => { setIsAddModalOpen(false); setViewingEvent(null); setEditingEvent(null); setSelectedDate(null); }, []); 
 
     const handlePrevMonth = useCallback(() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)), [currentDate]); 
     const handleNextMonth = useCallback(() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)), [currentDate]); 
     
-    // --- Handler Conferma (INVARIATO) ---
     const handleConfirmEvent = useCallback(async (eventId, eventData) => { 
         const confirmResult = await agendaAction.confermaEvento(eventId); 
         if (confirmResult.success && eventData?.tipo === 'nota_invio_email' && eventData?.offertaId) {
             try {
-                if (!offerteManager || typeof offerteManager.confermaInvioEmail !== 'function' || !user?.uid) {
-                    throw new Error("OfferteManager o user non disponibili per confermare invio email.");
-                }
+                if (!offerteManager || typeof offerteManager.confermaInvioEmail !== 'function' || !user?.uid) throw new Error("OfferteManager o user non disponibili");
                 await offerteManager.confermaInvioEmail(eventData.offertaId, user.uid);
-            } catch(offerError) {
-                alert(`Nota confermata, ma errore nell'aggiornamento dell'offerta: ${offerError.message}`);
-            }
+            } catch(offerError) { alert(`Nota confermata, ma errore nell'aggiornamento dell'offerta: ${offerError.message}`); }
         } else if (!confirmResult.success) {
             alert(`Errore durante la conferma della nota: ${confirmResult.message}`);
             return confirmResult; 
         }
-        if (confirmResult.success) {
-            handleCloseModal(); 
-        }
+        if (confirmResult.success) handleCloseModal(); 
         return confirmResult; 
     }, [agendaAction, offerteManager, user, handleCloseModal]); 
 
-    // --- Handler Rifiuto (INVARIATO) ---
     const handleRejectEvent = useCallback(async (eventId) => {
         const result = await agendaAction.rifiutaEvento(eventId);
-        if (result.success) {
-            handleCloseModal(); 
-        }
+        if (result.success) handleCloseModal(); 
         return result;
     }, [agendaAction, handleCloseModal]); 
 
-    
-    // --- ✅ NUOVA FUNZIONE onSave UNIFICATA ---
-    // Questa funzione riceve (data) per la creazione O (id, data) per la modifica,
-    // proprio come si aspetta AggiungiEventoForm.jsx
     const handleSave = useCallback(async (idOrData, data) => {
         let result;
-        if (typeof idOrData === 'string') {
-            // --- MODIFICA ---
-            // Chiama la funzione 'updateEvento' "intelligente" di agendaAction
-            // che ora gestisce da sola la logica di negoziazione.
-            const eventId = idOrData;
-            const eventData = data;
-            result = await agendaAction.updateEvento(eventId, eventData);
-        } else {
-            // --- CREAZIONE ---
-            const eventData = idOrData;
-            result = await agendaAction.addEvento(eventData);
-        }
-        
-        // Chiude il modale solo se l'operazione ha successo
-        if (result.success) {
-            handleCloseModal();
-        }
-        // Ritorna il risultato (success: true/false) al form
+        if (typeof idOrData === 'string') result = await agendaAction.updateEvento(idOrData, data);
+        else result = await agendaAction.addEvento(idOrData);
+        if (result.success) handleCloseModal();
         return result;
+    }, [agendaAction, handleCloseModal]); 
 
-    }, [agendaAction, handleCloseModal]); // Dipende da agendaAction e handleCloseModal
-    
-
-    // --- ❌ RIMOSSE VECCHIE FUNZIONI DI NEGOZIAZIONE ---
-    // handleProposeChange, handleAcceptChange, e handleRejectChange 
-    // sono state rimosse. La loro logica è ora in updateEvento.
-
-
-    // --- Oggetto Return ---
-    console.log("%c[MGR-DEBUG] Check 2: Valori esportati. Year:", "color: magenta", currentDate.getFullYear());
     return {
-        // --- Dati (INVARIATI) ---
         events: eventi, documents: documenti, user: user, users: users, userRole: userRole,
-        loadingData: loadingData,
-        isLoading: agendaAction.isLoading || offerteManager.isSaving,
-
-        // --- Stato Calendario (INVARIATO) ---
+        loadingData: loadingData, isLoading: agendaAction.isLoading || offerteManager.isSaving,
         monthName: currentDate.toLocaleString('it-IT', { month: 'long' }), 
-        year: currentDate.getFullYear(), 
-        calendarDays: daysInMonth, 
-        handleNextMonth: handleNextMonth,
-        handlePrevMonth: handlePrevMonth,
-        currentDate: currentDate, 
-        
-        // --- Eventi filtrati (INVARIATO) ---
+        year: currentDate.getFullYear(), calendarDays: daysInMonth, 
+        handleNextMonth: handleNextMonth, handlePrevMonth: handlePrevMonth, currentDate: currentDate, 
         filteredEvents: filteredEvents, 
-
-        // --- ✅ AZIONI CRUD AGGIORNATE ---
-        onSave: handleSave, // Unica funzione di salvataggio per il Form
-        onDeleteEvent: agendaAction.deleteEvento,
-        onConfirmEvent: handleConfirmEvent, 
-        onRejectEvent: handleRejectEvent, 
-        creaNotaApprovazione: agendaAction.creaNotaApprovazione,
-        creaNotaInvioMail: agendaAction.creaNotaInvioMail, 
-
-        // --- ❌ RIMOSSE AZIONI DI NEGOZIAZIONE OBSOLETE ---
-        // onProposeChangeEvent, onAcceptChangeEvent, onRejectChangeEvent
-
-        // --- Stato UI (INVARIATO) ---
+        onSave: handleSave, onDeleteEvent: agendaAction.deleteEvento,
+        onConfirmEvent: handleConfirmEvent, onRejectEvent: handleRejectEvent, 
+        creaNotaApprovazione: agendaAction.creaNotaApprovazione, creaNotaInvioMail: agendaAction.creaNotaInvioMail, 
         canSelectUser: canSelectUser, selectedUserId: selectedUserId, setSelectedUserId: setSelectedUserId,
         onDayClick: handleDayClick, onEventClick: handleEventClick, onEditEvent: handleEditEvent, 
         onCloseModal: handleCloseModal, isAddModalOpen: isAddModalOpen, viewingEvent: viewingEvent,

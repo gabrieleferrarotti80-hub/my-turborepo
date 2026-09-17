@@ -1,26 +1,24 @@
+// packages/shared-ui/components/StatoDocumenti.jsx
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDocumentiManager, useFirebaseData } from 'shared-core';
 import { FileUploadZone } from '../components/FileUploadZone';
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
-
-const labelStyle = "text-lg font-semibold text-gray-900";
-const subLabelStyle = "text-sm text-gray-500";
-const itemStyle = "flex items-center justify-between p-3 border-b";
+import { DocumentCheckIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon as SolidCheckCircle, XCircleIcon as SolidXCircle } from '@heroicons/react/24/solid';
 
 export const StatoDocumenti = ({ 
     isOpen, 
     onClose, 
     onSave, 
-    documentiRichiesti = [], // da offerta.datiAnalisi
+    documentiRichiesti = [], // Ora è un array di stringhe! Es: ["DGUE", "DURC"]
     companyId 
 }) => {
     
-    const { db, storage, user } = useFirebaseData(); // Necessario per il manager
-    // Inizializza il manager con il companyId corretto
+    const { db, storage, user } = useFirebaseData(); 
     const docManager = useDocumentiManager(db, storage, user, companyId);
     
     const [companyDocs, setCompanyDocs] = useState([]);
-    const [manualUploads, setManualUploads] = useState({}); // es. { durc: File, soa: File }
+    const [manualUploads, setManualUploads] = useState({}); 
     const [isLoading, setIsLoading] = useState(false);
 
     // 1. Carica i documenti aziendali all'apertura del modal
@@ -29,89 +27,95 @@ export const StatoDocumenti = ({
             const fetchDocs = async () => {
                 setIsLoading(true);
                 const docs = await docManager.getCompanyDocuments();
-                setCompanyDocs(docs);
+                setCompanyDocs(docs || []);
                 setIsLoading(false);
             };
             fetchDocs();
         }
-    }, [isOpen, companyId]); // Ricarica se companyId o isOpen cambiano
+    }, [isOpen, companyId]);
 
-    // 2. Logica "Proattiva": abbina i documenti richiesti con quelli trovati
+    // 2. Logica "Proattiva": abbina i nomi spuntati con i file nel DB aziendale
     const documentiStato = useMemo(() => {
         const oggi = new Date();
         
-        return documentiRichiesti.map(docRichiesto => {
-            // Trova un match. Assumiamo che docRichiesto.id sia 'durc', 'soa'
-            // e che i documenti aziendali abbiano un campo 'tipo' uguale.
+        return (documentiRichiesti || []).map((docName, index) => {
+            // Cerchiamo un match per Titolo, Nome o Tipo
             const foundDoc = companyDocs.find(
-                doc => doc.tipo === docRichiesto.id
+                doc => doc.titolo === docName || doc.nomeFile === docName || doc.tipo === docName
             );
             
             let status = 'missing';
             if (foundDoc) {
-                if (foundDoc.scadenza && foundDoc.scadenza > oggi) {
-                    status = 'found';
+                if (foundDoc.dataScadenza) {
+                    const scadenza = new Date(foundDoc.dataScadenza);
+                    status = scadenza > oggi ? 'found' : 'expired';
                 } else {
-                    status = 'expired';
+                    // Se non ha scadenza, è valido per sempre (es. statuto)
+                    status = 'found'; 
                 }
             }
             
             return {
-                ...docRichiesto, // id, label
-                status,          // 'missing', 'expired', 'found'
+                id: `doc_${index}_${docName.replace(/\s+/g, '')}`, // ✅ KEY UNICA RISOLTA PER REACT
+                name: docName,
+                status,          
                 foundDoc: status === 'found' ? foundDoc : null
             };
         });
     }, [documentiRichiesti, companyDocs]);
 
-    // 3. Handler per i caricamenti manuali
+    // 3. Handler per i caricamenti manuali (Dropzone)
     const handleManualUpload = (docId, files) => {
-        if (files.length > 0) {
+        if (files && files.length > 0) {
             setManualUploads(prev => ({
                 ...prev,
-                [docId]: files[0] // Salva il File, non l'array
+                [docId]: files[0] 
             }));
         }
     };
 
-    // 4. Handler per il salvataggio
+    // 4. Salva e passa i dati alla Fase 2
     const handleSaveClick = () => {
-        // Raccogli i documenti trovati
         const automatici = documentiStato
-            .filter(d => d.status === 'found')
-            .map(d => d.foundDoc); // Array di oggetti Doc
+            .filter(d => d.status === 'found' && d.foundDoc)
+            .map(d => d.foundDoc); 
             
-        // I file manuali sono già in 'manualUploads'
         onSave({ 
             automatici: automatici, 
-            manualiFiles: manualUploads // Oggetto { docId: File }
+            manualiFiles: manualUploads 
         });
     };
 
     if (!isOpen) return null;
 
-    // --- JSX del Modal ---
     return (
-        <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-            onClick={onClose}
-        >
-            <div 
-                className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col"
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="p-4 border-b">
-                    <h2 className="text-xl font-bold text-gray-900">Stato Documenti di Gara</h2>
-                    <p className={subLabelStyle}>Il sistema verifica i documenti aziendali. Carica manualmente quelli mancanti.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                
+                {/* --- HEADER --- */}
+                <div className="bg-indigo-600 p-6 text-white shrink-0">
+                    <h2 className="text-2xl font-black flex items-center gap-2">
+                        <DocumentCheckIcon className="h-8 w-8 text-indigo-200" /> Verifica Documenti di Gara
+                    </h2>
+                    <p className="text-indigo-100 mt-1 font-medium text-sm">
+                        Il sistema cerca automaticamente nel tuo archivio aziendale i documenti richiesti per questa gara. Carica manualmente quelli mancanti o specifici.
+                    </p>
                 </div>
 
-                {/* Corpo (scrollabile) */}
-                <div className="p-4 overflow-y-auto">
+                {/* --- CORPO SCROLLABILE --- */}
+                <div className="p-6 overflow-y-auto flex-1 bg-slate-50">
                     {isLoading ? (
-                        <p>Caricamento documenti aziendali...</p>
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-3"></div>
+                            <p className="text-slate-500 font-bold">Ricerca nell'archivio aziendale in corso...</p>
+                        </div>
+                    ) : documentiStato.length === 0 ? (
+                        <div className="text-center py-12">
+                            <p className="text-slate-500 font-bold text-lg">Nessun documento richiesto.</p>
+                            <p className="text-sm text-slate-400 mt-1">Puoi aggiungerli tornando alla Fase 1 (Analisi Preliminare).</p>
+                        </div>
                     ) : (
-                        <ul className="divide-y divide-gray-200">
+                        <div className="space-y-4">
                             {documentiStato.map(doc => {
                                 const isFound = doc.status === 'found';
                                 const isMissing = doc.status === 'missing';
@@ -119,63 +123,79 @@ export const StatoDocumenti = ({
                                 const fileCaricato = manualUploads[doc.id];
                                 
                                 return (
-                                    <li key={doc.id} className="py-4">
-                                        <div className={itemStyle}>
+                                    <div key={doc.id} className={`bg-white border rounded-2xl p-5 shadow-sm transition-all ${isFound ? 'border-green-200' : isExpired ? 'border-red-200' : 'border-slate-200'}`}>
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            
                                             {/* Info Documento */}
                                             <div className="flex-1">
-                                                {isFound ? (
-                                                    <CheckCircleIcon className="h-6 w-6 text-green-500 inline-block mr-2" />
-                                                ) : (
-                                                    <XCircleIcon className="h-6 w-6 text-red-500 inline-block mr-2" />
-                                                )}
-                                                <span className={labelStyle}>{doc.label}</span>
-                                                {isFound && (
-                                                    <p className={`${subLabelStyle} ml-8`}>
-                                                        Trovato: {doc.foundDoc.nome} (Scade il: {doc.foundDoc.scadenza.toLocaleDateString()})
-                                                    </p>
-                                                )}
-                                                {isExpired && <p className={`${subLabelStyle} ml-8 text-red-600`}>Trovato, ma scaduto.</p>}
-                                                {isMissing && <p className={`${subLabelStyle} ml-8 text-red-600`}>Non trovato nei documenti aziendali.</p>}
+                                                <div className="flex items-center gap-3">
+                                                    {isFound ? (
+                                                        <SolidCheckCircle className="h-6 w-6 text-green-500 shrink-0" />
+                                                    ) : (
+                                                        <SolidXCircle className="h-6 w-6 text-amber-500 shrink-0" />
+                                                    )}
+                                                    <span className="text-lg font-bold text-slate-800">{doc.name}</span>
+                                                </div>
+                                                
+                                                <div className="ml-9 mt-1">
+                                                    {isFound && (
+                                                        <p className="text-sm text-green-700 font-medium">
+                                                            <span className="font-bold">✓ Trovato in archivio:</span> {doc.foundDoc.nomeFile || doc.foundDoc.titolo} 
+                                                            {doc.foundDoc.dataScadenza && ` (Scadenza: ${new Date(doc.dataScadenza).toLocaleDateString('it-IT')})`}
+                                                        </p>
+                                                    )}
+                                                    {isExpired && (
+                                                        <p className="text-sm text-red-600 font-medium">
+                                                            <span className="font-bold">⚠ Trovato ma SCADUTO:</span> {doc.foundDoc.nomeFile || doc.foundDoc.titolo}
+                                                        </p>
+                                                    )}
+                                                    {isMissing && (
+                                                        <p className="text-sm text-amber-600 font-medium">
+                                                            Non trovato nell'archivio aziendale. Richiesto caricamento manuale.
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                             
-                                            {/* Zona Upload (se non trovato) */}
+                                            {/* Zona Upload (se non trovato o scaduto) */}
                                             {!isFound && (
-                                                <div className="w-1/2 ml-4">
+                                                <div className="w-full md:w-1/3 shrink-0">
                                                     {fileCaricato ? (
-                                                        <div className="p-3 bg-green-100 text-green-800 rounded-md text-sm">
-                                                            Pronto per il caricamento: {fileCaricato.name}
+                                                        <div className="p-3 bg-indigo-50 border border-indigo-100 text-indigo-800 rounded-xl text-xs font-bold flex items-center justify-between">
+                                                            <span className="truncate pr-2">📎 {fileCaricato.name}</span>
+                                                            <button onClick={() => setManualUploads(prev => { const newU = {...prev}; delete newU[doc.id]; return newU; })} className="text-indigo-400 hover:text-red-500 transition-colors">✕</button>
                                                         </div>
                                                     ) : (
                                                         <FileUploadZone 
-                                                            label={`Carica ${doc.label} (Manuale)`}
+                                                            label={`Allega file...`}
                                                             onFilesSelected={(files) => handleManualUpload(doc.id, files)}
                                                         />
                                                     )}
                                                 </div>
                                             )}
                                         </div>
-                                    </li>
+                                    </div>
                                 );
                             })}
-                        </ul>
+                        </div>
                     )}
                 </div>
 
-                {/* Footer Pulsanti */}
-                <div className="flex justify-end gap-4 mt-auto border-t p-4 bg-gray-50">
+                {/* --- FOOTER PULSANTI --- */}
+                <div className="bg-white border-t border-slate-200 p-5 flex justify-end gap-3 shrink-0">
                     <button 
                         type="button" 
                         onClick={onClose}
-                        className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                        className="px-6 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors"
                     >
                         Annulla
                     </button>
                     <button 
                         type="button"
                         onClick={handleSaveClick}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        className="px-8 py-2.5 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all"
                     >
-                        Salva Stato Documenti
+                        Conferma Documentazione
                     </button>
                 </div>
             </div>

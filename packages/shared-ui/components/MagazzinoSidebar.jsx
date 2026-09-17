@@ -1,83 +1,46 @@
 import React from 'react';
-import { useTheme } from '../context/themeContext.jsx'; // Assicurati che il percorso sia corretto
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-    faArrowLeft,
-    faWrench,
-    faBoxOpen,
-    faClipboardList,
-} from '@fortawesome/free-solid-svg-icons';
+import { 
+    ArchiveBoxIcon, WrenchScrewdriverIcon, ClipboardDocumentListIcon, 
+    ArrowLeftIcon, CubeIcon, ClockIcon 
+} from '@heroicons/react/24/outline';
 
-const viewIcons = {
-    attrezzature: faWrench,
-    materiali: faBoxOpen,
-    assegnazioni: faClipboardList,
-};
-
-// 1. Aggiungi 'userRole' alle props
-export const MagazzinoSidebar = ({ activeSubView, onNavigate, onBack, companyFeatures, userRole }) => {
-    const theme = useTheme(); 
-
-    if (!theme || !theme.colorClasses || !theme.primaryColor) {
-        return null;
-    }
-
-    const activeClass = `${theme.colorClasses[theme.primaryColor].bg} text-white`;
-    const inactiveClass = `text-gray-200 hover:bg-gray-700`;
-
-    const getDisplayName = (view) => {
-        switch (view) {
-            case 'attrezzature':
-                return 'Attrezzature';
-            case 'materiali':
-                return 'Materiali';
-            case 'assegnazioni':
-                return 'Assegnazioni';
-            default:
-                return view.charAt(0).toUpperCase() + view.slice(1);
-        }
-    };
-
-    // 2. Unisci la logica in un unico blocco pulito
-    const isOwner = userRole === 'proprietario';
-    const hasAssegnazioniFeature = companyFeatures?.magazzino_assegnazioni === true;
-
-    const views = ['attrezzature', 'materiali']; 
+export const MagazzinoSidebar = ({ activeSubView, onNavigate, onBack }) => {
     
-    // Mostra "Assegnazioni" se l'utente è proprietario OPPURE se l'azienda ha il permesso
-    if (isOwner || hasAssegnazioniFeature) {
-        views.push('assegnazioni'); 
-    }
+    const menuItems = [
+        { id: 'attrezzature', label: 'Parco Attrezzature', icon: WrenchScrewdriverIcon },
+        { id: 'materiali', label: 'Magazzino Materiali', icon: CubeIcon },
+        { id: 'assegnazioni', label: 'Registro Assegnazioni', icon: ClipboardDocumentListIcon },
+        // ✅ NUOVA VOCE
+        { id: 'manutenzioni', label: 'Scadenze & Manutenzioni', icon: ClockIcon },
+    ];
 
     return (
-        <aside className="w-72 bg-gray-800 p-4 shadow-lg rounded-r-2xl h-screen flex flex-col justify-between">
-            <div>
-                <div className="mb-8 text-center">
-                    <h1 className="text-xl font-bold text-white">Gestione Magazzino</h1> 
-                    <p className="text-sm text-gray-400">Inventario e Logistica</p> 
-                </div>
-                
-                <button
-                    onClick={onBack}
-                    className="flex items-center w-full p-3 my-1 rounded-md text-gray-200 hover:bg-gray-700 transition-colors duration-200"
-                >
-                    <FontAwesomeIcon icon={faArrowLeft} className="mr-3" />
-                    <span>Torna al Menu Principale</span>
+        <div className="flex flex-col h-full text-gray-300">
+            <div className="p-6 border-b border-gray-700">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <ArchiveBoxIcon className="h-6 w-6 text-indigo-400"/> Magazzino
+                </h2>
+                <button onClick={onBack} className="mt-4 flex items-center text-sm text-gray-400 hover:text-white transition-colors">
+                    <ArrowLeftIcon className="h-4 w-4 mr-2"/> Torna alla Home
                 </button>
-                
-                <nav className="mt-8">
-                    {views.map((view) => (
-                        <button
-                            key={view}
-                            onClick={() => onNavigate(view)}
-                            className={`flex items-center w-full p-3 my-1 rounded-md transition-colors duration-200 ${activeSubView === view ? activeClass : inactiveClass}`}
-                        >
-                            <FontAwesomeIcon icon={viewIcons[view]} className="mr-3" />
-                            <span>{getDisplayName(view)}</span>
-                        </button>
-                    ))}
-                </nav>
             </div>
-        </aside>
+
+            <nav className="flex-1 p-4 space-y-2">
+                {menuItems.map(item => (
+                    <button
+                        key={item.id}
+                        onClick={() => onNavigate(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                            activeSubView === item.id 
+                            ? 'bg-indigo-600 text-white shadow-md' 
+                            : 'hover:bg-gray-700 hover:text-white'
+                        }`}
+                    >
+                        <item.icon className="h-5 w-5" />
+                        <span className="font-medium">{item.label}</span>
+                    </button>
+                ))}
+            </nav>
+        </div>
     );
 };

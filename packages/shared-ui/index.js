@@ -15,7 +15,13 @@ export * from './views/CantiereReportDetailView.jsx';
 export * from './views/CantiereReportOverview.jsx';
 export * from './views/OfferteDashboard.jsx';
 export * from './views/OfferteListView.jsx';
-export * from './views/OffertaWorkspaceView.jsx';
+export * from './views/OffertaWorkspaceView';
+export * from './views/PianificazioneOperativaView.jsx';
+export * from './views/SimulatoreGareView.jsx';
+export * from './views/SimulatoreGanttView.jsx';
+export * from './views/SimulatoreReportView.jsx';
+
+
 
 // --- COMPONENTI (Mattoncini riutilizzabili) ---
 export * from './components/ActionButtons.jsx';
@@ -49,9 +55,58 @@ export * from './components/PresenzeControllo.jsx';
 export * from './components/PresenzeViewerModal.jsx';
 export * from './components/SopralluogoReportModal.jsx';
 export * from './components/CartellinoBadge';
+export * from './components/TimelineScheduler.jsx';
+export * from './components/PlanningToolbar.jsx';
+export * from './components/UnscheduledSidebar.jsx';
+export * from './components/GanttView.jsx';
+export * from './components/PlannerSidebar.jsx';
+export * from './components/TaskEditorModal.jsx';
+export * from './components/FatturazioneDashboard.jsx';
+export * from './components/FatturaForm.jsx';
+export * from './components/FatturaPrintTemplate.jsx';
+export * from './components/FornitoriDashboard.jsx';
+export * from './components/FornitoreForm.jsx';
+export * from './components/FatturaAcquistoForm.jsx';
+export * from './components/PreventivoOrdineForm.jsx';
+export * from './components/ScadenziarioDashboard.jsx';
+export * from './components/DDTCaptureModal.jsx';
+export * from './components/LinkDDTModal.jsx';
+export * from './components/AnalisiCommessaDashboard.jsx';
+export * from './components/BackupDashboard.jsx';
+export * from './components/AggiungiScadenzaModal.jsx';
+export * from './components/GestioneManutenzioniView.jsx';
+export * from './components/RichiestaFerieModal.jsx';
+export * from './components/GestioneFerieView.jsx';
+export * from './components/SALList.jsx';
+export * from './components/ConfigurazioneAziendaView.jsx';
+export * from './components/SignatureModal.jsx';
+export * from './components/DossierGaraModal.jsx';
+export * from './components/DashboardSottoscorta.jsx';
+export * from './components/SubappaltatoriDashboard.jsx';
+export * from './components/SmartResourceSelector.jsx';
+export * from './components/RichiestaOffertaForm.jsx';
+export * from './components/ComparatoreRDO';
+export * from './components/BugReportModal.jsx';
+
+export * from './components/PreventivoBuilder/PreventivoBuilderPro.jsx';
+export * from './components/PreventivoBuilder/AnalisiCostiModal.jsx';
+export * from './components/PreventivoBuilder/SmartDescrizioneInput.jsx';
+export * from './components/PreventivoBuilder/StoricoPrezziModal.jsx';
+export * from './components/PreventivoBuilder/AnalisiManodoperaView.jsx';
+export * from './components/PreventivoBuilder/SimulatorePreventivoBuilder.jsx';
+export * from './components/PreventivoBuilder/SimulatoreAnalisiCostiModal.jsx';
+export * from './components/PreventivoBuilder/ImportatoreExcel.jsx';
+export { PreventivoHeader } from './components/PreventivoBuilder/PreventivoHeader';
+export { PreventivoFooter } from './components/PreventivoBuilder/PreventivoFooter';
+export { PreventivoTableRow } from './components/PreventivoBuilder/PreventivoTableRow';
+export * from './components/PreventivoBuilder/SimulatoreFabbisogniView.jsx';
+
+
 
 // --- FORM (Componenti "stupidi" per l'inserimento dati) ---
+export * from './forms/AggiungiAttrezzaturaForm.jsx';
 export * from './forms/AggiungiDocumentoForm.jsx';
+export * from './forms/AssegnaMaterialeForm.jsx';
 export * from './forms/AggiungiEventoForm.jsx';
 export * from './forms/AggiungiArticoloForm.jsx';
 export * from './forms/AssegnaAttrezzaturaForm.jsx';
@@ -65,6 +120,12 @@ export * from './forms/ElaborazioneForm.jsx';
 export * from './forms/AnalisiCostiForm.jsx';
 export * from './forms/RevisioneInvioForm.jsx';
 export * from './forms/GenericFormRenderer.jsx';
+export * from './forms/AggiungiMaterialeForm.jsx';
+export * from './forms/ResoMaterialeForm.jsx';
+export * from './forms/SALForm.jsx';
+export * from './forms/ModificaMaterialeForm.jsx';
 
-// ❌ RIMOSSO: AddMaterialeForm.jsx era probabilmente un duplicato o un refuso.
-// La logica è gestita da AggiungiArticoloForm.
+
+
+
+export * from './pdf/VerbaleConsegnaDPI.jsx';

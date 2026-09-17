@@ -13,6 +13,12 @@ const rolePermissions = {
         canViewDocumenti: true,
         canViewOfferte: true, // ✅ Permesso di vista
         canManageOfferte: true, // ✅ Permesso di gestione
+        canViewProgrammazione: true,
+        canManageFatturazione: true,
+        canManageProgrammazione: true,
+        canViewSicurezza: true,
+
+        canViewAssegnazioni: true, //
 
         // Altri permessi...
         canViewAssegnazioni: true,
@@ -20,6 +26,8 @@ const rolePermissions = {
         canReadForms: true,
         canViewReports: true,
         canViewCantiereReports: true,
+        canManageFornitori: true,
+        canViewAnalisiCommessa: true,
     },
     'titolare-azienda': {
         canViewDashboard: true,
@@ -32,12 +40,20 @@ const rolePermissions = {
         canViewDocumenti: true,
         canViewOfferte: true, // ✅ CHIAVE AGGIUNTA
         canManageOfferte: true,
+        canManageFatturazione: true,
+        canViewProgrammazione: true,
+        canManageProgrammazione: true,
+
+        canViewAssegnazioni: true, //
         
         canViewAssegnazioni: true,
         canManageRapportini: true,
         canReadForms: true,
         canViewReports: true,
         canViewCantiereReports: true,
+        canManageFornitori: true,
+        canViewAnalisiCommessa: true,
+        canViewSicurezza: true,
     },
 
     amministrazione: {
@@ -51,12 +67,47 @@ const rolePermissions = {
         canViewDocumenti: true,
         canViewOfferte: true, // ✅ CHIAVE AGGIUNTA
         canManageOfferte: true,
+        canViewProgrammazione: true,
+        canManageFatturazione: true,
+        canManageProgrammazione: true,
+
+        canViewAssegnazioni: true, //
         
         canViewAssegnazioni: true,
         canManageRapportini: true,
         canReadForms: true,
         canViewReports: true,
         canViewCantiereReports: true,
+        canManageFornitori: true,
+        canViewAnalisiCommessa: true,
+        canViewSicurezza: true,
+    },
+
+    tecnico: {
+       canViewDashboard: true,
+        canViewAgenda: true,
+        canViewAziende: false,
+        canViewPersonale: true,
+        canViewClienti: true,
+        canViewMagazzino: true,
+        canViewGestioneOperativa: true,
+        canViewDocumenti: true,
+        canViewOfferte: true, // ✅ CHIAVE AGGIUNTA
+        canManageOfferte: true,
+        canViewProgrammazione: true,
+        canManageFatturazione: true,
+        canManageProgrammazione: true,
+
+        canViewAssegnazioni: true, //
+        
+        canViewAssegnazioni: true,
+        canManageRapportini: true,
+        canReadForms: true,
+        canViewReports: true,
+        canViewCantiereReports: true,
+        canManageFornitori: true,
+        canViewAnalisiCommessa: true,
+        canViewSicurezza: true,
     },
 
     preposto: {
@@ -76,12 +127,15 @@ const rolePermissions = {
         canReadForms: true,
         canViewReports: true,
         canViewCantiereReports: true,
+        canViewAnalisiCommessa: false,
+        canViewSicurezza: true,
     },
 
     dipendente: {
                canViewAgenda: true,        // Può vedere la propria agenda
         canViewAssegnazioni: true,  // Può vedere le proprie assegnazioni
-        canUseAppEsterna: true      // Può accedere all'app esterna
+        canUseAppEsterna: true,
+        canViewSicurezza: true,    // Può accedere all'app esterna
         // Tutti gli altri permessi (es. canViewClienti, canViewPersonale)
         // rimarranno 'false' grazie al default.
     },
@@ -102,6 +156,10 @@ const rolePermissions = {
         canReadForms: false,
         canViewReports: false,
         canViewCantiereReports: false,
+        canViewProgrammazione: false,
+        canManageProgrammazione: false,
+        canViewAnalisiCommessa: false,
+        canViewSicurezza: true,
     }
 };
 

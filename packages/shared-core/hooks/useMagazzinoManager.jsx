@@ -1,198 +1,368 @@
-// packages/shared-core/hooks/useMagazzinoManager.jsx
-
 import { useState } from 'react';
-import {
-    collection,
-    runTransaction,
-    doc,
-    Timestamp,
-    query,
-    where,
-    getDocs,
-    arrayUnion
+import { 
+    collection, doc, addDoc, updateDoc, deleteDoc, 
+    serverTimestamp, runTransaction, writeBatch 
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-/**
- * Hook unificato per le AZIONI di gestione del magazzino dal LATO GESTIONALE.
- * Fornisce funzioni transazionali per garantire l'integrità dei dati.
- */
-export const useMagazzinoManager = (db, user) => {
+export const useMagazzinoManager = (db, storage, user, companyID) => {
     const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState('');
+    const [error, setError] = useState(null);
 
-    const creaAssegnazione = async (attrezzatura, utente, companyID) => {
+    // --- 1. AGGIUNGI ATTREZZATURA ---
+    const addAttrezzatura = async (datiAttrezzatura, file) => {
         setIsLoading(true);
+        setError(null);
         try {
-            if (attrezzatura.stato !== 'disponibile') {
-                throw new Error(`L'attrezzatura "${attrezzatura.nome}" non è disponibile.`);
+            let fotoUrl = null;
+            let storagePath = null;
+            if (file && storage) {
+                const path = `magazzino/${companyID}/attrezzature/${Date.now()}_${file.name}`;
+                const storageRef = ref(storage, path);
+                await uploadBytes(storageRef, file);
+                fotoUrl = await getDownloadURL(storageRef);
+                storagePath = path;
             }
-            const attrezzaturaRef = doc(db, 'attrezzature', attrezzatura.id);
-            const newAssegnazioneRef = doc(collection(db, 'assegnazioniMagazzino'));
+            const attrezzaturaRef = doc(collection(db, 'attrezzature'));
+            const archivioRef = doc(collection(db, 'archivioAttrezzatura'));
+            const now = serverTimestamp();
 
             await runTransaction(db, async (transaction) => {
-                const assegnazioneData = {
-                    id: newAssegnazioneRef.id,
-                    attrezzaturaID: attrezzatura.id,
-                    attrezzaturaNome: attrezzatura.nome,
-                    attrezzaturaSeriale: attrezzatura.seriale,
-                    utenteID: utente.id,
-                    utenteNome: `${utente.nome} ${utente.cognome}`,
-                    companyID: companyID,
-                    dataAssegnazione: Timestamp.now(),
-                    statoWorkflow: 'da confermare',
-                    storico: [{
-                        timestamp: Timestamp.now(),
-                        statoNuovo: 'da confermare',
-                        eseguitoDa: user.uid,
-                        note: 'Assegnazione creata da gestionale.'
-                    }]
-                };
-                transaction.set(newAssegnazioneRef, assegnazioneData);
-                transaction.update(attrezzaturaRef, { stato: 'assegnato' });
+                transaction.set(attrezzaturaRef, {
+                    ...datiAttrezzatura, companyID, fotoUrl, storagePath,
+                    stato: 'disponibile', tipoArticolo: 'attrezzatura',
+                    createdAt: now, updatedAt: now, createdBy: user.uid
+                });
+                transaction.set(archivioRef, {
+                    attrezzaturaID: attrezzaturaRef.id,
+                    seriale: datiAttrezzatura.seriale || 'N/A',
+                    nome: datiAttrezzatura.nome, companyID,
+                    eventi: [{ tipo: 'creazione', timestamp: new Date(), utente: user.uid, dettagli: `Attrezzatura creata.` }]
+                });
             });
-            return { success: true, message: `Assegnazione per "${attrezzatura.nome}" creata.` };
-        } catch (error) {
-            return { success: false, message: error.message };
-        } finally {
             setIsLoading(false);
+            return { success: true, message: "Attrezzatura creata con successo!", id: attrezzaturaRef.id };
+        } catch (err) {
+            setError(err.message);
+            setIsLoading(false);
+            return { success: false, message: err.message };
         }
     };
 
-    const accettaRestituzione = async (assegnazione) => {
-        const assegnazioneRef = doc(db, 'assegnazioniMagazzino', assegnazione.id);
-        const attrezzaturaRef = doc(db, 'attrezzature', assegnazione.attrezzaturaID);
-
+    // --- 2. AGGIUNGI MATERIALE ---
+    const addMateriale = async (datiMateriale) => {
+        setIsLoading(true);
+        setError(null);
         try {
-            const archivioQuery = query(collection(db, 'archivioAttrezzatura'), where("attrezzaturaID", "==", assegnazione.attrezzaturaID));
-            const archivioSnapshot = await getDocs(archivioQuery);
-            const archivioDocRef = archivioSnapshot.empty ? null : archivioSnapshot.docs[0].ref;
-
-            await runTransaction(db, async (t) => {
-                const assegnazioneDoc = await t.get(assegnazioneRef);
-                if (!assegnazioneDoc.exists()) throw new Error("Assegnazione non più valida.");
-
-                if (archivioDocRef) {
-                    t.update(archivioDocRef, {
-                        eventi: arrayUnion({
-                            tipo: 'restituzione',
-                            timestamp: Timestamp.now(),
-                            utente: user.uid,
-                            dettagli: `Articolo restituito da ${assegnazione.utenteNome} e reso disponibile.`
-                        })
-                    });
-                }
-
-                t.delete(assegnazioneRef);
-                t.update(attrezzaturaRef, { stato: 'disponibile' });
+            const statoIniziale = datiMateriale.cantiereId ? 'in_cantiere' : 'disponibile';
+            const docRef = await addDoc(collection(db, 'attrezzature'), {
+                ...datiMateriale, companyID, tipoArticolo: 'materiale', stato: statoIniziale,
+                createdAt: serverTimestamp(), updatedAt: serverTimestamp(), createdBy: user.uid
             });
-            return { success: true, message: "Restituzione completata. L'attrezzatura è di nuovo disponibile." };
-        } catch (error) {
-            console.error("Errore durante l'accettazione della restituzione:", error);
-            return { success: false, message: error.message };
+            if (datiMateriale.cantiereId) {
+                 await addDoc(collection(db, 'movimenti_magazzino'), {
+                    materialeId: docRef.id, nomeMateriale: datiMateriale.nome, cantiereId: datiMateriale.cantiereId,
+                    quantita: datiMateriale.quantita, tipo: 'carico_diretto_cantiere', companyID,
+                    operatoreId: user.uid, createdAt: serverTimestamp(), note: 'Caricamento manuale'
+                });
+            }
+            setIsLoading(false);
+            return { success: true, message: "Materiale aggiunto!", id: docRef.id };
+        } catch (err) {
+            setError(err.message);
+            setIsLoading(false);
+            return { success: false, message: err.message };
         }
     };
 
-    const accettaSegnalazione = async (assegnazione) => {
-        const assegnazioneRef = doc(db, 'assegnazioniMagazzino', assegnazione.id);
-        const attrezzaturaRef = doc(db, 'attrezzature', assegnazione.attrezzaturaID);
-        const archivioAssegnazioneRef = doc(collection(db, 'archivioAssegnazioniMagazzino'));
-
+    // --- 3. PROCESSA DDT ---
+    const processaDDT = async (ddt, ordine) => {
+        setIsLoading(true);
+        setError(null);
         try {
-            const archivioQuery = query(collection(db, 'archivioAttrezzatura'), where("attrezzaturaID", "==", assegnazione.attrezzaturaID));
-            const archivioSnapshot = await getDocs(archivioQuery);
-            const archivioDocRef = archivioSnapshot.empty ? null : archivioSnapshot.docs[0].ref;
+            if (!ddt || !ordine) throw new Error("Dati mancanti.");
+            if (!ordine.righe || ordine.righe.length === 0) throw new Error("Ordine vuoto.");
+            const batch = writeBatch(db);
+            const isDestinazioneCantiere = ddt.cantiereId && ddt.cantiereId !== 'MAGAZZINO_SEDE';
+            
+            for (const riga of ordine.righe) {
+                const tipoArticolo = ddt.tipoOggetto === 'attrezzatura' ? 'attrezzatura' : 'materiale';
+                const articoloRef = doc(collection(db, 'attrezzature'));
+                let statoIniziale = 'disponibile', cantiereAssegnato = null, nomeCantiereAssegnato = null;
 
+                if (tipoArticolo === 'materiale' && isDestinazioneCantiere) {
+                    statoIniziale = 'in_cantiere'; cantiereAssegnato = ddt.cantiereId; nomeCantiereAssegnato = ddt.nomeCantiere;
+                }
+
+                const datiArticolo = {
+                    nome: riga.descrizione || 'Articolo', tipoArticolo,
+                    categoria: tipoArticolo === 'attrezzatura' ? 'Attrezzatura Generica' : 'Materiale',
+                    quantita: Number(riga.quantita) || 1, unitaMisura: riga.unitaMisura || 'pz',
+                    costoUnitario: Number(riga.prezzoUnitario) || 0,
+                    ddtId: ddt.id, ordineId: ordine.id, cantiereId: cantiereAssegnato, 
+                    nomeCantiere: nomeCantiereAssegnato, companyID, stato: statoIniziale,
+                    createdAt: serverTimestamp(), updatedAt: serverTimestamp(), createdBy: user.uid
+                };
+                batch.set(articoloRef, datiArticolo);
+
+                const movimentoRef = doc(collection(db, 'movimenti_magazzino'));
+                batch.set(movimentoRef, {
+                    materialeId: articoloRef.id, nomeMateriale: datiArticolo.nome,
+                    cantiereId: cantiereAssegnato, nomeCantiere: nomeCantiereAssegnato,
+                    quantita: datiArticolo.quantita, tipo: isDestinazioneCantiere ? 'trasferimento_cantiere' : 'carico_acquisto', 
+                    companyID, operatoreId: user.uid, createdAt: serverTimestamp(), note: `Carico automatico`
+                });
+            }
+            batch.update(doc(db, 'ddt_acquisti', ddt.id), { stato: 'processato', dataProcessamento: serverTimestamp() });
+            await batch.commit();
+            setIsLoading(false);
+            return { success: true, message: "DDT processato." };
+        } catch (err) {
+            setError(err.message);
+            setIsLoading(false);
+            return { success: false, message: err.message };
+        }
+    };
+
+   // --- 4. GESTIONE GUASTI ---
+    const accettaSegnalazione = async (assegnazioneId, attrezzaturaId) => {
+        setIsLoading(true);
+        try {
+            if (!attrezzaturaId || !assegnazioneId) throw new Error("ID mancanti.");
+            const batch = writeBatch(db);
+            
+            batch.update(doc(db, 'attrezzature', attrezzaturaId), { stato: 'in riparazione', updatedAt: serverTimestamp() });
+            
+            batch.update(doc(db, 'assegnazioniMagazzino', assegnazioneId), {
+                statoWorkflow: 'in riparazione',
+                stato: 'in riparazione', // ✅ FIX
+                dataRientro: serverTimestamp() // Inizia il "rientro" fisico
+            });
+            await batch.commit();
+            setIsLoading(false);
+            return { success: true, message: "Guasto accettato." };
+        } catch (err) {
+            setIsLoading(false);
+            return { success: false, message: err.message };
+        }
+    };
+
+   const risolviRiparazione = async (assegnazioneId, attrezzaturaId, noteIntervento, costoRiparazione) => {
+        setIsLoading(true);
+        try {
+            if (!attrezzaturaId || !assegnazioneId) throw new Error("ID mancanti.");
+            const batch = writeBatch(db);
+            
+            batch.update(doc(db, 'attrezzature', attrezzaturaId), { stato: 'disponibile', assegnatoA: null, updatedAt: serverTimestamp() });
+
+            batch.update(doc(db, 'assegnazioniMagazzino', assegnazioneId), {
+                statoWorkflow: 'conclusa', 
+                stato: 'restituito', // ✅ FIX: Assegnazione terminata, l'oggetto è in magazzino
+                dataRientro: serverTimestamp(), // ✅ FIX: Assicura che HR lo veda come restituito
+                dataRiparazione: serverTimestamp(),
+                noteRiparazione: noteIntervento || 'Riparazione completata.',
+                costo: costoRiparazione || 0
+            });
+
+            batch.set(doc(collection(db, 'scadenze_mezzi')), {
+                mezzoId: attrezzaturaId, tipoScadenza: 'Riparazione Guasto',
+                dataScadenza: new Date().toISOString().split('T')[0], dataEsecuzione: new Date().toISOString(),
+                stato: 'completata', costo: Number(costoRiparazione) || 0, noteEsecuzione: noteIntervento,
+                eseguitaDa: user.uid, companyID, createdAt: serverTimestamp()
+            });
+            await batch.commit();
+            setIsLoading(false);
+            return { success: true, message: "Riparazione conclusa." };
+        } catch (err) {
+            setIsLoading(false);
+            return { success: false, message: err.message };
+        }
+    };
+
+    const dismettiArticolo = async (id) => {
+        setIsLoading(true);
+        try {
+            await updateDoc(doc(db, 'attrezzature', id), { stato: 'dismesso', updatedAt: serverTimestamp() });
+            setIsLoading(false);
+            return { success: true, message: "Articolo dismesso." };
+        } catch (err) {
+            setIsLoading(false);
+            return { success: false, message: err.message };
+        }
+    };
+
+    // --- 5. ASSEGNA MATERIALE ---
+    const assegnaMaterialeCantiere = async (dati) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const { materialeId, cantiereId, nomeCantiere, quantita } = dati;
+            const sourceRef = doc(db, 'attrezzature', materialeId);
+            
             await runTransaction(db, async (t) => {
-                const assegnazioneDoc = await t.get(assegnazioneRef);
-                if (!assegnazioneDoc.exists()) throw new Error("Assegnazione non più valida.");
+                const sourceDoc = await t.get(sourceRef);
+                if (!sourceDoc.exists()) throw new Error("Materiale non trovato.");
+                const sourceData = sourceDoc.data();
+                const qtaDisponibile = Number(sourceData.quantita);
+                const qtaDaSpostare = Number(quantita);
 
-                const isGuasto = assegnazione.statoWorkflow === 'guasto segnalato';
-                const nuovoStatoAttrezzatura = isGuasto ? 'in riparazione' : 'perso/rubato';
+                if (qtaDisponibile < qtaDaSpostare) throw new Error(`Giacenza insufficiente.`);
+                t.update(sourceRef, { quantita: qtaDisponibile - qtaDaSpostare, updatedAt: serverTimestamp() });
 
-                if (archivioDocRef) {
-                    t.update(archivioDocRef, {
-                        eventi: arrayUnion({
-                            tipo: isGuasto ? 'guasto_accettato' : 'furto_accettato',
-                            timestamp: Timestamp.now(),
-                            utente: user.uid,
-                            dettagli: `Segnalazione da ${assegnazione.utenteNome} accettata. Stato impostato a: ${nuovoStatoAttrezzatura}.`
-                        })
+                const destRef = doc(collection(db, 'attrezzature'));
+                t.set(destRef, {
+                    ...sourceData, quantita: qtaDaSpostare, cantiereId, nomeCantiere,
+                    stato: 'in_cantiere', provenienzaId: materialeId, updatedAt: serverTimestamp(), createdAt: serverTimestamp()
+                });
+
+                t.set(doc(collection(db, 'movimenti_magazzino')), {
+                    tipo: 'trasferimento_cantiere', materialeId, nomeMateriale: sourceData.nome, 
+                    cantiereId, nomeCantiere, quantita: qtaDaSpostare, costoUnitario: Number(sourceData.costoUnitario || 0), 
+                    valoreTotale: qtaDaSpostare * Number(sourceData.costoUnitario || 0),
+                    companyID, operatoreId: user.uid, createdAt: serverTimestamp()
+                });
+            });
+            setIsLoading(false);
+            return { success: true, message: "Materiale trasferito." };
+        } catch (err) {
+            setError(err.message);
+            setIsLoading(false);
+            return { success: false, message: err.message };
+        }
+    };
+
+    // --- 6. RESTITUISCI AVANZO ---
+    const restituisciMateriale = async (dati) => { return restituisciAvanzo(dati.materialeId, dati.quantita, dati.note); };
+
+    const restituisciAvanzo = async (materialeId, quantitaResa, note) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const matRef = doc(db, 'attrezzature', materialeId);
+            await runTransaction(db, async (transaction) => {
+                const matDoc = await transaction.get(matRef);
+                if (!matDoc.exists()) throw new Error("Materiale non trovato.");
+                const data = matDoc.data();
+                const quantitaConsumata = Number(data.quantita) - Number(quantitaResa);
+                if (quantitaConsumata < 0) throw new Error("Resa superiore all'iniziale.");
+
+                if (quantitaConsumata > 0) {
+                    transaction.set(doc(collection(db, 'movimenti_magazzino')), {
+                        materialeId, nomeMateriale: data.nome, cantiereId: data.cantiereId, nomeCantiere: data.nomeCantiere,
+                        quantita: quantitaConsumata, tipo: 'scarico_effettivo', companyID, operatoreId: user.uid,
+                        createdAt: serverTimestamp(), note: `Consumo calcolato su reso`
                     });
                 }
+                transaction.update(matRef, {
+                    quantita: Number(quantitaResa), cantiereId: null, nomeCantiere: null,
+                    stato: 'disponibile', updatedAt: serverTimestamp(), note: (data.note || '') + `\n[RESO] Rientrato: ${quantitaResa}.`
+                });
+            });
+            setIsLoading(false);
+            return { success: true, message: "Reso registrato." };
+        } catch (err) {
+            setError(err.message);
+            setIsLoading(false);
+            return { success: false, message: err.message };
+        }
+    };
+
+    // --- 7. UPDATE & DELETE ---
+    const updateArticolo = async (id, dati) => {
+        setIsLoading(true);
+        try {
+            await updateDoc(doc(db, 'attrezzature', id), { ...dati, updatedAt: serverTimestamp() });
+            setIsLoading(false);
+            return { success: true, message: "Articolo aggiornato." };
+        } catch (err) {
+            setIsLoading(false);
+            return { success: false, message: err.message };
+        }
+    };
+
+    const deleteArticolo = async (id) => {
+        setIsLoading(true);
+        try {
+            await deleteDoc(doc(db, 'attrezzature', id));
+            setIsLoading(false);
+            return { success: true, message: "Articolo eliminato." };
+        } catch (err) {
+            setIsLoading(false);
+            return { success: false, message: err.message };
+        }
+    };
+
+    // --- 8. SCARICA MATERIALE ---
+    const scaricaMateriale = async (datiScarico) => {
+        setIsLoading(true);
+        try {
+            const materialeRef = doc(db, 'attrezzature', datiScarico.materialeId);
+            await runTransaction(db, async (transaction) => {
+                const docSnap = await transaction.get(materialeRef);
+                if(!docSnap.exists()) throw new Error("Non trovato");
+                const nuovaQta = Number(docSnap.data().quantita) - Number(datiScarico.quantita);
+                if(nuovaQta < 0) throw new Error("Giacenza insufficiente");
                 
-                t.set(archivioAssegnazioneRef, { ...assegnazioneDoc.data(), statoWorkflow: 'conclusa', dataArchiviazione: Timestamp.now() });
-                t.delete(assegnazioneRef);
-                t.update(attrezzaturaRef, { stato: nuovoStatoAttrezzatura });
+                transaction.update(materialeRef, { quantita: nuovaQta });
+                transaction.set(doc(collection(db, 'movimenti_magazzino')), { ...datiScarico, tipo: 'scarico_manuale', companyID, createdAt: serverTimestamp() });
             });
-            return { success: true, message: "Segnalazione gestita e archiviata." };
-        } catch (error) {
-            return { success: false, message: error.message };
+            setIsLoading(false);
+            return { success: true, message: "Scarico registrato." };
+        } catch (err) {
+            setIsLoading(false);
+            return { success: false, message: err.message };
         }
     };
-    
-    const risolviRiparazione = async (attrezzatura) => {
-        const attrezzaturaRef = doc(db, 'attrezzature', attrezzatura.id);
+
+    // --- 9. ASSEGNAZIONI MULTIPLE ---
+    const creaAssegnazioniMultiple = async (articoli, datiAssegnazione) => {
+        setIsLoading(true);
+        setError(null);
         try {
-            const archivioQuery = query(collection(db, 'archivioAttrezzatura'), where("attrezzaturaID", "==", attrezzatura.id));
-            const archivioSnapshot = await getDocs(archivioQuery);
-            const archivioDocRef = archivioSnapshot.empty ? null : archivioSnapshot.docs[0].ref;
+            const batch = writeBatch(db);
 
-            await runTransaction(db, async (t) => {
-                t.update(attrezzaturaRef, { stato: 'disponibile' });
+            articoli.forEach(articolo => {
+                const assegnazioneRef = doc(collection(db, 'assegnazioniMagazzino'));
+                batch.set(assegnazioneRef, {
+                    ...datiAssegnazione,
+                    companyID,
+                    articoloId: articolo.id,
+                    articoloNome: articolo.nome || articolo.modello || 'Articolo Sconosciuto',
+                    categoria: articolo.categoria || 'attrezzatura',
+                    dataAssegnazione: serverTimestamp(),
+                    stato: 'da confermare',         
+                    statoWorkflow: 'da confermare', 
+                    confermaRicezione: false, 
+                    isDPI: datiAssegnazione.isDPI || false, 
+                    creatoDa: user.uid
+                });
 
-                if (archivioDocRef) {
-                    t.update(archivioDocRef, {
-                        eventi: arrayUnion({
-                            tipo: 'riparazione',
-                            timestamp: Timestamp.now(),
-                            utente: user.uid,
-                            dettagli: `Articolo riparato e reso disponibile.`
-                        })
+                if (datiAssegnazione.tipo === 'attrezzatura' || articolo.tipoArticolo === 'attrezzatura') {
+                    const articoloRef = doc(db, 'attrezzature', articolo.id);
+                    batch.update(articoloRef, {
+                        stato: 'in_uso',
+                        assegnatoA: datiAssegnazione.assegnatoA, 
+                        dataUltimaAssegnazione: serverTimestamp()
                     });
                 }
             });
-            return { success: true, message: `L'articolo "${attrezzatura.nome}" è stato riparato.` };
-        } catch (error) {
-            return { success: false, message: error.message };
+
+            await batch.commit();
+            setIsLoading(false);
+            return { success: true, message: `${articoli.length} articoli assegnati con successo.` };
+        } catch (err) {
+            setError(err.message);
+            setIsLoading(false);
+            return { success: false, message: err.message };
         }
     };
 
-    const dismettiArticolo = async (attrezzatura) => {
-        const attrezzaturaRef = doc(db, 'attrezzature', attrezzatura.id);
-        const dismissioneRef = doc(collection(db, 'dismissioniMagazzino'));
-        try {
-            const archivioQuery = query(collection(db, 'archivioAttrezzatura'), where("attrezzaturaID", "==", attrezzatura.id));
-            const archivioSnapshot = await getDocs(archivioQuery);
-            const archivioDocRef = archivioSnapshot.empty ? null : archivioSnapshot.docs[0].ref;
-
-            await runTransaction(db, async (t) => {
-                t.set(dismissioneRef, { ...attrezzatura, dataDismissione: Timestamp.now(), utenteDismissione: user.uid });
-                t.delete(attrezzaturaRef);
-                
-                if (archivioDocRef) {
-                    t.update(archivioDocRef, {
-                        eventi: arrayUnion({
-                            tipo: 'dismissione',
-                            timestamp: Timestamp.now(),
-                            utente: user.uid,
-                            dettagli: `Articolo dismesso e rimosso dall'inventario.`
-                        })
-                    });
-                }
-            });
-            return { success: true, message: `L'articolo "${attrezzatura.nome}" è stato dismesso.` };
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    };
+    const addArticolo = addAttrezzatura; // Alias
 
     return {
-        isLoading,
-        message,
-        creaAssegnazione,
-        accettaRestituzione,
-        accettaSegnalazione,
-        risolviRiparazione,
-        dismettiArticolo,
+        isLoading, error, addAttrezzatura, addArticolo, addMateriale,
+        processaDDT, assegnaMaterialeCantiere, restituisciMateriale,
+        restituisciAvanzo, updateArticolo, deleteArticolo, scaricaMateriale,
+        accettaSegnalazione, risolviRiparazione, dismettiArticolo, creaAssegnazioniMultiple
     };
 };

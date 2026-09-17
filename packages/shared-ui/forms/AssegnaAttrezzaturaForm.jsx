@@ -33,34 +33,50 @@ export const AssegnaAttrezzaturaForm = ({ onBack, onSaveSuccess, dipendenti, mag
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage('');
+    e.preventDefault();
+    setMessage('');
 
-        const attrezzatureIDs = righeAssegnazione
-            .map(r => r.attrezzaturaId)
-            .filter(id => id !== '');
+    // 1. Trova gli oggetti completi dal magazzino usando gli ID selezionati
+    const articoliSelezionati = righeAssegnazione
+        .map(r => r.attrezzaturaId)
+        .filter(id => id !== '')
+        .map(id => magazzino.find(item => item.id === id)) // Trova l'oggetto intero
+        .filter(Boolean); // Rimuovi eventuali undefined
 
-        if (!selectedDipendente) {
-            setMessage('Errore: Selezionare un dipendente.');
-            return;
-        }
-        if (attrezzatureIDs.length === 0 || attrezzatureIDs.length !== righeAssegnazione.length) {
-            setMessage('Errore: Selezionare un articolo per ogni riga.');
-            return;
-        }
+    if (!selectedDipendente) {
+        setMessage('Errore: Selezionare un dipendente.');
+        return;
+    }
+    if (articoliSelezionati.length === 0 || articoliSelezionati.length !== righeAssegnazione.length) {
+        setMessage('Errore: Selezionare un articolo valido per ogni riga.');
+        return;
+    }
 
-        try {
-            const result = await creaAssegnazioniMultiple({ utenteID: selectedDipendente, attrezzatureIDs });
-            
-            if (result.success) {
-                onSaveSuccess(result.message);
-            } else {
-                 setMessage(`Errore: ${result.message}`);
-            }
-        } catch (error) {
-            setMessage(`Errore: ${error.message}`);
-        }
-    };
+    // 2. Prepara i dati dell'assegnazione (il "chi" e il "dove")
+    // Trova il nome del dipendente per comodità
+    const dipendenteObj = dipendenti.find(d => d.id === selectedDipendente);
+    
+    const datiAssegnazione = {
+        assegnatoA: selectedDipendente, // ID Utente
+        assegnatoA_Nome: dipendenteObj ? `${dipendenteObj.nome} ${dipendenteObj.cognome}` : 'Sconosciuto',
+        tipo: 'attrezzatura', // O 'DPI' se volessimo gestirlo qui
+        note: '', // Eventuali note
+        isDPI: false // Default false, potremmo aggiungere un checkbox nel form
+    };
+
+    try {
+        // 3. CHIAMA LA FUNZIONE CON I DUE ARGOMENTI CORRETTI
+        const result = await creaAssegnazioniMultiple(articoliSelezionati, datiAssegnazione);
+        
+        if (result.success) {
+            onSaveSuccess(result.message);
+        } else {
+             setMessage(`Errore: ${result.message}`);
+        }
+    } catch (error) {
+        setMessage(`Errore: ${error.message}`);
+    }
+};
 
     const attrezzatureDisponibili = magazzino.filter(item => item.stato === 'disponibile');
     const idSelezionati = righeAssegnazione.map(r => r.attrezzaturaId);

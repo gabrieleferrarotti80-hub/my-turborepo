@@ -1,9 +1,9 @@
-// --- 1. IMPORT UNIFICATI ---
+// --- 1. IMPORT UNIFICATI (FIREBASE FUNCTIONS V2) ---
 const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onCall, HttpsError } = require("firebase-functions/v2/https"); // Import per le funzioni chiamate dall'app
 const { logger } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
-// Import AGGIUNTO per la nuova funzione schedulata
-const { onSchedule } = require("firebase-functions/v2/scheduler");
 
 // --- 2. INIZIALIZZAZIONE UNIFICATA ---
 admin.initializeApp();
@@ -12,10 +12,10 @@ admin.initializeApp();
 const db = admin.firestore();
 const Timestamp = admin.firestore.Timestamp;
 
-// --- 3. LE TUE FUNZIONI ESISTENTI (leggermente modificate per usare 'db') ---
+
+// --- 3. FUNZIONI FIRESTORE TRIGGER ---
 
 /**
- * (Funzione Esistente 1)
  * Si attiva quando viene creato un NUOVO documento 'assegnazioniMagazzino'
  */
 exports.inviaNotificaNuovaAssegnazione = onDocumentCreated("assegnazioniMagazzino/{assegnazioneId}", async (event) => {
@@ -30,7 +30,6 @@ exports.inviaNotificaNuovaAssegnazione = onDocumentCreated("assegnazioniMagazzin
         return null;
     }
 
-    // Modifica: usa la variabile 'db' definita sopra
     const userRef = db.collection("users").doc(dipendenteId);
     const userDoc = await userRef.get();
 
@@ -69,7 +68,6 @@ exports.inviaNotificaNuovaAssegnazione = onDocumentCreated("assegnazioniMagazzin
 });
 
 /**
- * (Funzione Esistente 2)
  * Funzione vecchia, disabilitata.
  */
 exports.inviaNotificaAssegnazioneVecchia = onDocumentUpdated("magazzino/{articoloId}", async (event) => {
@@ -78,7 +76,6 @@ exports.inviaNotificaAssegnazioneVecchia = onDocumentUpdated("magazzino/{articol
 });
 
 /**
- * (Funzione Esistente 3)
  * Sincronizza lo stato 'in uso' da 'assegnazioniMagazzino' a 'magazzino'
  */
 exports.syncMagazzinoStatus = onDocumentUpdated("assegnazioniMagazzino/{assegnazioneId}", async (event) => {
@@ -89,11 +86,9 @@ exports.syncMagazzinoStatus = onDocumentUpdated("assegnazioniMagazzino/{assegnaz
         logger.log("Trigger 'syncMagazzinoStatus' attivato.");
         const articoloId = afterData.articoloId;
         
-        // Modifica: usa la variabile 'db' definita sopra
         const magazzinoRef = db.collection('magazzino').doc(articoloId);
 
         try {
-            // Modifica: usa la variabile 'db' definita sopra
             await db.runTransaction(async (transaction) => {
                 const magazzinoDoc = await transaction.get(magazzinoRef);
                 if (!magazzinoDoc.exists) {
@@ -111,15 +106,13 @@ exports.syncMagazzinoStatus = onDocumentUpdated("assegnazioniMagazzino/{assegnaz
 });
 
 
-// --- 4. NUOVA FUNZIONE SCHEDULATA (Aggiunta) ---
+// --- 4. FUNZIONE SCHEDULATA ---
 
 /**
- * (Funzione Nuova)
  * Esegue ogni giorno alle 23:59 (fuso orario italiano) per chiudere
  * le timbrature "lavoro" rimaste aperte (timestampFine === null).
  */
 exports.chiusuraAutomaticaPresenze = onSchedule(
-  // Cron Tab: "alle 23:59, ogni giorno, ogni mese, ogni giorno della settimana"
   {
     schedule: "59 23 * * *", 
     timeZone: "Europe/Rome", // Fuso orario italiano
@@ -128,7 +121,6 @@ exports.chiusuraAutomaticaPresenze = onSchedule(
     logger.log("--- 🚀 Esecuzione Chiusura Automatica Presenze ---");
 
     try {
-      // 1. Definisci l'intervallo di oggi (da 00:00 a 23:59)
       const now = new Date();
       const inizioGiorno = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
       const fineGiorno = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 0);
@@ -138,7 +130,6 @@ exports.chiusuraAutomaticaPresenze = onSchedule(
 
       logger.log(`Intervallo di ricerca: da ${inizioGiorno.toISOString()} a ${fineGiorno.toISOString()}`);
 
-      // 2. Query: Trova le timbrature "lavoro" aperte di oggi
       const presenzeRef = db.collection("presenze");
       const snapshot = await presenzeRef
         .where("stato", "==",["lavoro", "pioggia"])
@@ -154,13 +145,11 @@ exports.chiusuraAutomaticaPresenze = onSchedule(
 
       logger.log(`Trovate ${snapshot.size} timbrature da chiudere.`);
 
-      // 3. Aggiornamento: Usa un Batch
       const batch = db.batch();
 
       snapshot.docs.forEach((doc) => {
         logger.log(`Chiusura documento: ${doc.id} (Utente: ${doc.data().userId})`);
         
-        // Calcola il timestampFine (ore 23:59 del giorno di inizio)
         const inizioTimestamp = doc.data().timestampInizio.toDate();
         const fineTimestamp = new Date(inizioTimestamp);
         fineTimestamp.setHours(23, 59, 0, 0);
@@ -168,13 +157,11 @@ exports.chiusuraAutomaticaPresenze = onSchedule(
         const docRef = db.collection("presenze").doc(doc.id);
         batch.update(docRef, {
           timestampFine: Timestamp.fromDate(fineTimestamp),
-          chiusuraAutomatica: true, // Flag per il colore verde!
+          chiusuraAutomatica: true, 
         });
       });
 
-      // 4. Esegui l'aggiornamento
       await batch.commit();
-
       logger.log(`--- ✅ Chiusura Automatica Completata. ${snapshot.size} documenti aggiornati. ---`);
       return null;
 
@@ -184,3 +171,73 @@ exports.chiusuraAutomaticaPresenze = onSchedule(
     }
   }
 );
+
+
+// --- 5. GESTIONE CREDENZIALI (AUTH) DAL GESTIONALE ---
+
+/**
+ * Crea o aggiorna un utente in Firebase Authentication
+ */
+exports.manageUserAuth = onCall(async (request) => {
+    const data = request.data;
+    
+    // Sicurezza: solo utenti loggati possono usare questa funzione
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Accesso negato. Devi essere autenticato.');
+    }
+
+    try {
+        try {
+            // 1. Cerca se l'account Firebase Auth esiste già per questa email
+            const userRecord = await admin.auth().getUserByEmail(data.email);
+            
+            // 2. Se esiste e l'amministratore ha digitato una nuova password, la aggiorna
+            if (data.password && data.password.length >= 6) {
+                await admin.auth().updateUser(userRecord.uid, { password: data.password });
+            }
+            return { uid: userRecord.uid };
+            
+        } catch (e) {
+            // 3. Se l'utente NON esiste, lo crea da zero
+            if (e.code === 'auth/user-not-found') {
+                if (!data.password) throw new HttpsError('invalid-argument', 'Password mancante per il nuovo utente.');
+                
+                const newUser = await admin.auth().createUser({
+                    email: data.email,
+                    password: data.password,
+                    displayName: `${data.nome} ${data.cognome}`
+                });
+                return { uid: newUser.uid };
+            }
+            throw e;
+        }
+    } catch (error) {
+        logger.error("Errore manageUserAuth:", error);
+        throw new HttpsError('internal', error.message);
+    }
+});
+
+/**
+ * Elimina definitivamente un utente da Firebase Authentication (Licenziamento/Dimissioni)
+ * Convertito in sintassi V2: onCall(async (request) => {...})
+ */
+exports.deleteUserAuth = onCall(async (request) => {
+    // Verifica che chi chiama sia loggato
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Devi essere loggato per eliminare un utente.');
+    }
+
+    const uidToDelete = request.data.uid;
+    if (!uidToDelete) {
+        throw new HttpsError('invalid-argument', 'UID utente mancante.');
+    }
+
+    try {
+        await admin.auth().deleteUser(uidToDelete);
+        logger.log(`Utente ${uidToDelete} eliminato con successo da Authentication.`);
+        return { success: true, message: "Utente rimosso da Authentication." };
+    } catch (error) {
+        logger.error("Errore durante l'eliminazione da Auth:", error);
+        throw new HttpsError('internal', "Impossibile eliminare l'utente da Firebase Auth.");
+    }
+});
